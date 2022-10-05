@@ -417,7 +417,8 @@ class PlayGame extends Phaser.Scene {
                 isSensor: true,
             })
             .setScale(0.25 * dpr);
-        this.matter.add.image((this.gameWidth / 2) - (75 * dpr), (this.gameHeight / 2) - (120 * dpr), 'wall3', null, {
+        this.matter.add.sprite((this.gameWidth / 2) - (75 * dpr), (this.gameHeight / 2) - (120 * dpr), 'wall3', null, {
+                shape: shapes.wall3,
                 isStatic: true,
                 isSensor: true,
             })
