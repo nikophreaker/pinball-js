@@ -26,6 +26,7 @@ const MAX_VELOCITY = 50;
 // shared variables
 let dpr;
 let currentScore, highScore;
+let fieldBumper, fieldBumper2;
 let engine, world, render, pinball, stopperGroup;
 let leftPaddle, leftUpStopper, leftDownStopper, isLeftPaddleUp;
 let rightPaddle, rightUpStopper, rightDownStopper, isRightPaddleUp;
@@ -61,7 +62,7 @@ window.onload = function () {
                     timestamp: 0,
                     timeScale: 1
                 },
-                debug: true
+                debug: false
             },
         },
         scene: [PlayGame]
@@ -161,19 +162,25 @@ class PlayGame extends Phaser.Scene {
         this.load.image("pegas", "pegas.png");
         this.load.image("dome", "dome.png");
         this.load.image("wall1", "wall1.png");
+        this.load.image("wall2", "wall2.png");
+        this.load.image("wall3", "wall3.png");
         this.load.image("leftA", "left_a.png");
         this.load.image("rightA", "right_a.png");
-        this.load.image("leftB", "left_B.png");
-        this.load.image("rightB", "right_B.png");
-        this.load.image("leftC", "left_C.png");
-        this.load.image("rightC", "right_C.png");
-        this.load.image("leftD", "left_D.png");
-        this.load.image("rightD", "right_D.png");
+        this.load.image("leftB", "left_b.png");
+        this.load.image("rightB", "right_b.png");
+        this.load.image("leftC", "left_c.png");
+        this.load.image("rightC", "right_c.png");
+        this.load.image("leftD", "left_d.png");
+        this.load.image("rightD", "right_d.png");
         this.load.image("toggleLeft", "toggle_left.png");
         this.load.image("toggleRight", "toggle_right.png");
         this.load.image("bumper100", "bumper_100.png");
         this.load.image("bumper200", "bumper_200.png");
         this.load.image("bumper500", "bumper_500.png");
+        this.load.image("appronsLeft", "approns_left.png");
+        this.load.image("appronsRight", "approns_right.png");
+        this.load.image("bgPinball", "bg_pinball.png");
+        this.load.image("fieldBumper", "field_bumper.png");
         this.load.json("shapes", "shapes.json");
     }
 
@@ -208,7 +215,7 @@ class PlayGame extends Phaser.Scene {
         // this.logo = this.add.sprite((window.innerWidth * window.devicePixelRatio) / 2, (window.innerHeight * window.devicePixelRatio) / 4, "logo")
         //     .setScale(0.3);
         this.enterGame(); // testing
-        this.btnStart.on("pointerdown", this.enterGame, this)
+        this.btnStart.on("pointerdown", this.enterGame, this);
     }
 
     // outer edges of pinball table
@@ -323,6 +330,26 @@ class PlayGame extends Phaser.Scene {
         this.bgStart.setPosition(this.gameWidth / 2, this.gameHeight / 2);
         this.bgStart.displayWidth = this.gameWidth;
         this.bgStart.displayHeight = this.gameHeight;
+
+        this.matter.add.image((this.gameWidth / 2) - (3 * dpr), (this.gameHeight / 2) + (11 * dpr), 'bgPinball', null, {
+                isStatic: true,
+                isSensor: true,
+            })
+            .setScale(0.25 * dpr);
+
+        fieldBumper = this.matter.add.image((this.gameWidth / 2) + (3 * dpr), (this.gameHeight / 2) - (66 * dpr), 'fieldBumper', null, {
+                isStatic: true,
+                isSensor: true,
+            })
+            .setScale(0.25 * dpr);
+        fieldBumper2 = this.matter.add.image((this.gameWidth / 2) + (3 * dpr), (this.gameHeight / 2) - (66 * dpr), 'fieldBumper', null, {
+                isStatic: true,
+                isSensor: true,
+            })
+            .setScale(0.25 * dpr);
+        fieldBumper.alpha = 0.65;
+        fieldBumper2.alpha = 1;
+
         // let bgGame = this.add.rectangle(this.gameWidth / 2, this.gameHeight / 2, this.gameWidth, this.gameHeight, {
         //     render: {
         //         fillColor: 0xffffff
@@ -383,8 +410,28 @@ class PlayGame extends Phaser.Scene {
                 isStatic: true,
             })
             .setScale(0.24 * dpr, 0.25 * dpr);
-        this.boundaryBottom = this.boundary(this.gameWidth / 2, this.gameHeight, this.gameWidth, 20 * dpr, "bottom")
+        this.boundaryBottom = this.boundary(this.gameWidth / 2, this.gameHeight, this.gameWidth, 20 * dpr, "bottom");
         let wall2 = '0 0 100 426 90 442 85 458 74.2 475 74 475 60 495 50 525 42 545 38 565 28 595 28 600 28 990 0 990'
+        this.matter.add.image((this.gameWidth / 2) - (118 * dpr), (this.gameHeight / 2) + (70 * dpr), 'wall2', null, {
+                isStatic: true,
+                isSensor: true,
+            })
+            .setScale(0.25 * dpr);
+        this.matter.add.image((this.gameWidth / 2) - (75 * dpr), (this.gameHeight / 2) - (120 * dpr), 'wall3', null, {
+                isStatic: true,
+                isSensor: true,
+            })
+            .setScale(0.25 * dpr);
+        this.matter.add.image((this.gameWidth / 2) - (78 * dpr), (this.gameHeight / 2) + (275 * dpr), 'appronsLeft', null, {
+                isStatic: true,
+                isSensor: true,
+            })
+            .setScale(0.25 * dpr);
+        this.matter.add.image((this.gameWidth / 2) + (75 * dpr), (this.gameHeight / 2) + (275 * dpr), 'appronsRight', null, {
+                isStatic: true,
+                isSensor: true,
+            })
+            .setScale(0.25 * dpr);
         this.matter.world.add([
 
             // left wall
@@ -476,7 +523,7 @@ class PlayGame extends Phaser.Scene {
             })
             .setScale(0.25 * dpr);
 
-        let rightC = this.matter.add.image((this.gameWidth / 2) + (78 * dpr), (this.gameHeight / 2) + (190 * dpr), 'rightC', null, {
+        let rightC = this.matter.add.image((this.gameWidth / 2) + (78 * dpr), (this.gameHeight / 2) + (187 * dpr), 'rightC', null, {
                 isStatic: true,
                 isSensor: true
             })
@@ -516,9 +563,9 @@ class PlayGame extends Phaser.Scene {
     createPaddles() {
         // these bodies keep paddle swings contained, but allow the ball to pass through
         leftUpStopper = this.stopper(((this.gameWidth / 2) - (40 * dpr)) - (10 * dpr), ((this.gameHeight / 2) + (235 * dpr)) - (34.5 * dpr), 'left', 'up');
-        leftDownStopper = this.stopper(((this.gameWidth / 2) - (40 * dpr)) - (15 * dpr), ((this.gameHeight / 2) + (235 * dpr)) + (35.5 * dpr), 'left', 'down');
+        leftDownStopper = this.stopper(((this.gameWidth / 2) - (40 * dpr)) - (10 * dpr), ((this.gameHeight / 2) + (235 * dpr)) + (35.5 * dpr), 'left', 'down');
         rightUpStopper = this.stopper(((this.gameWidth / 2) + (40 * dpr)) + (4 * dpr), (this.gameHeight / 2) + (231 * dpr) - (34.5 * dpr), 'right', 'up');
-        rightDownStopper = this.stopper(((this.gameWidth / 2) + (40 * dpr)) + (12 * dpr), (this.gameHeight / 2) + (231 * dpr) + (39.5 * dpr), 'right', 'down');
+        rightDownStopper = this.stopper(((this.gameWidth / 2) + (40 * dpr)) + (5 * dpr), (this.gameHeight / 2) + (231 * dpr) + (39.5 * dpr), 'right', 'down');
         this.matter.world.add([leftUpStopper, leftDownStopper, rightUpStopper, rightDownStopper]);
 
         // this group lets paddle pieces overlap each other
@@ -617,7 +664,7 @@ class PlayGame extends Phaser.Scene {
             bodyA: paddleRight.comp,
             pointA: {
                 x: 35,
-                y: -8.5
+                y: -4.5
             },
             bodyB: paddleRight.hinge,
             length: 0,
