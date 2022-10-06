@@ -45,6 +45,9 @@ window.onload = function () {
             width: 305.5 * window.devicePixelRatio,
             height: 624 * window.devicePixelRatio,
         },
+        dom: {
+            createContainer: true
+        },
         backgroundColor: 0xD30000,
         physics: {
             default: 'matter', //arcade
@@ -63,7 +66,7 @@ window.onload = function () {
                     timestamp: 0,
                     timeScale: 1
                 },
-                debug: true
+                debug: false
             },
         },
         scene: [PlayGame]
@@ -251,7 +254,7 @@ class PlayGame extends Phaser.Scene {
         arrPath.forEach(function (i, idx, array) {
             let temp = (i / 2) * dpr;
             if ((arrPath.length - 1) === idx) {
-                console.log(i);
+                // console.log(i);
                 dprPath += temp
             } else {
                 dprPath += temp + " "
@@ -851,7 +854,7 @@ class PlayGame extends Phaser.Scene {
                     if (element.bodyA.gameObject != null) {
                         // console.log(element);
                         if (element.bodyA.gameObject.body.label == "rightC") {
-                            console.log(element.bodyA);
+                            // console.log(element.bodyA);
                         } else if (element.bodyA.gameObject.body.label == "rightB") {
                             // console.log(element.bodyA.gameObject.body);
                             // this.matter.body.setVelocity(pinball.body, {
@@ -908,6 +911,45 @@ class PlayGame extends Phaser.Scene {
         this.rightBtn.on("up", function () {
             isRightPaddleUp = false;
         }, this);
+
+        // make controller virtual
+        let style = `appearance: none;position: absolute;width: 80px; height: 80px;border: 0;border-radius: 50%;color: inherit;background-color: #e64980;text-align: center;line-height: 80px;font-size: 1.25rem;text-transform: inherit;cursor: pointer;user-select: none;outline: none;left: 10px;`;
+        let leftJoy = this.add.dom((this.gameWidth / 2) - (95 * dpr), (this.gameHeight / 2) + (285 * dpr), 'button', style, 'LEFT').setInteractive();
+        let rightJoy = this.add.dom((this.gameWidth / 2) + (85 * dpr), (this.gameHeight / 2) + (285 * dpr), 'button', style, 'RIGHT').setInteractive();
+        console.log(leftJoy);
+        console.log(rightJoy);
+        leftJoy.addListener('mousedown');
+        leftJoy.addListener('touchstart');
+        leftJoy.addListener('mouseup');
+        leftJoy.addListener('touchend');
+        rightJoy.addListener('mousedown');
+        rightJoy.addListener('touchstart');
+        rightJoy.addListener('mouseup');
+        rightJoy.addListener('touchend');
+        leftJoy.on('mousedown', function (e) {
+            isLeftPaddleUp = true;
+        })
+        leftJoy.on('touchstart', function (e) {
+            isLeftPaddleUp = true;
+        })
+        leftJoy.on('mouseup', function (e) {
+            isLeftPaddleUp = false;
+        });
+        leftJoy.on('touchend', function (e) {
+            isLeftPaddleUp = false;
+        });
+        rightJoy.on('mousedown', function (e) {
+            isRightPaddleUp = true;
+        })
+        rightJoy.on('touchstart', function (e) {
+            isRightPaddleUp = true;
+        })
+        rightJoy.on('mouseup', function (e) {
+            isRightPaddleUp = false;
+        });
+        rightJoy.on('touchend', function (e) {
+            isRightPaddleUp = false;
+        });
 
         // click/tap paddle events
         // $('.left-trigger')
