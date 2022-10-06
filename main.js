@@ -37,6 +37,7 @@ const subDelta = delta / subSteps;
 
 window.onload = function () {
     let gameConfig = {
+        type: Phaser.CANVAS,
         scale: {
             mode: Phaser.Scale.FIT,
             autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -62,7 +63,7 @@ window.onload = function () {
                     timestamp: 0,
                     timeScale: 1
                 },
-                debug: false
+                debug: true
             },
         },
         scene: [PlayGame]
@@ -244,9 +245,21 @@ class PlayGame extends Phaser.Scene {
     }
 
     // bodies created from SVG paths
-    path(x, y, path) {
-        let vertices = this.matter.vertices.fromPath(path);
+    path(x, y, path, label) {
+        let dprPath = "";
+        let arrPath = path.split(" ");
+        arrPath.forEach(function (i, idx, array) {
+            let temp = (i / 2) * dpr;
+            if ((arrPath.length - 1) === idx) {
+                console.log(i);
+                dprPath += temp
+            } else {
+                dprPath += temp + " "
+            }
+        });
+        let vertices = this.matter.vertices.fromPath(dprPath);
         return this.matter.bodies.fromVertices(x, y, vertices, {
+            label: label,
             isStatic: true,
             render: {
                 fillStyle: COLOR.OUTER,
@@ -276,7 +289,7 @@ class PlayGame extends Phaser.Scene {
 
     // contact with these bodies causes pinball to be relaunched
     reset(x, y, width) {
-        return this.matter.bodies.rectangle(x, y, width, 2, {
+        return this.matter.bodies.rectangle(x, y, width, 1 * dpr, {
             label: 'reset',
             isStatic: true,
             render: {
@@ -290,7 +303,7 @@ class PlayGame extends Phaser.Scene {
         // determine which paddle composite to interact with
         let attracteeLabel = (side === 'left') ? 'paddleLeftComp' : 'paddleRightComp';
 
-        return this.matter.bodies.circle(x, y, 40, {
+        return this.matter.bodies.circle(x, y, 20 * dpr, {
             isStatic: true,
             render: {
                 visible: true,
@@ -308,8 +321,8 @@ class PlayGame extends Phaser.Scene {
                             let isPullingDown = (position === 'down' && !isPaddleUp);
                             if (isPullingUp || isPullingDown) {
                                 return {
-                                    x: (a.position.x - b.position.x) * PADDLE_PULL,
-                                    y: (a.position.y - b.position.y) * PADDLE_PULL,
+                                    x: (a.position.x - b.position.x) * ((PADDLE_PULL / 2) * dpr),
+                                    y: (a.position.y - b.position.y) * ((PADDLE_PULL / 2) * dpr),
                                 };
                             }
                         }
@@ -399,44 +412,66 @@ class PlayGame extends Phaser.Scene {
         // let domePath = this.path((this.gameWidth / 2), (this.gameHeight / 2) - (272 * dpr), domeTest);
         var shapes = this.cache.json.get('shapes');
         let domePath = this.matter.add.sprite((this.gameWidth / 2) + (5 * dpr), (this.gameHeight / 2) - (265 * dpr), "dome", null, {
+                label: "dome",
                 shape: shapes.dome,
                 friction: 0,
                 isStatic: true,
+                chamfer: {
+                    radius: 10
+                }
             })
             .setScale(0.24 * dpr, 0.225 * dpr);
         let wallPath = this.matter.add.sprite((this.gameWidth / 2) + (115 * dpr), (this.gameHeight / 2) + (8 * dpr), "wall1", null, {
+                label: "wall1",
                 shape: shapes.wall1,
                 friction: 0,
                 isStatic: true,
+                chamfer: {
+                    radius: 20
+                }
             })
             .setScale(0.24 * dpr, 0.25 * dpr);
         this.boundaryBottom = this.boundary(this.gameWidth / 2, this.gameHeight, this.gameWidth, 20 * dpr, "bottom");
         let wall2 = '0 0 100 426 90 442 85 458 74.2 475 74 475 60 495 50 525 42 545 38 565 28 595 28 600 28 990 0 990'
         this.matter.add.image((this.gameWidth / 2) - (118 * dpr), (this.gameHeight / 2) + (70 * dpr), 'wall2', null, {
+                label: "wall2",
                 isStatic: true,
                 isSensor: true,
+                chamfer: {
+                    radius: 10
+                }
             })
             .setScale(0.25 * dpr);
-        this.matter.add.sprite((this.gameWidth / 2) - (75 * dpr), (this.gameHeight / 2) - (120 * dpr), 'wall3', null, {
+        this.matter.add.sprite((this.gameWidth / 2) - (90 * dpr), (this.gameHeight / 2) - (135 * dpr), 'wall3', null, {
+                label: "wall3",
                 shape: shapes.wall3,
                 isStatic: true,
                 isSensor: true,
+                chamfer: {
+                    radius: 10
+                }
             })
-            .setScale(0.25 * dpr);
+            .setScale(0.22 * dpr);
         this.matter.add.image((this.gameWidth / 2) - (78 * dpr), (this.gameHeight / 2) + (275 * dpr), 'appronsLeft', null, {
                 isStatic: true,
                 isSensor: true,
+                chamfer: {
+                    radius: 10
+                }
             })
             .setScale(0.25 * dpr);
         this.matter.add.image((this.gameWidth / 2) + (75 * dpr), (this.gameHeight / 2) + (275 * dpr), 'appronsRight', null, {
                 isStatic: true,
                 isSensor: true,
+                chamfer: {
+                    radius: 10
+                }
             })
             .setScale(0.25 * dpr);
         this.matter.world.add([
 
             // left wall
-            this.path((this.gameWidth / 2) - (125 * dpr), (this.gameHeight / 2) + (14.5 * dpr), wall2),
+            this.path((this.gameWidth / 2) - (125 * dpr), (this.gameHeight / 2) + (14.5 * dpr), wall2, "wall2"),
 
             // table boundaries (top, bottom, left, right)
             this.boundary(this.gameWidth / 2, 0, this.gameWidth, 20 * dpr, "top"),
@@ -470,8 +505,8 @@ class PlayGame extends Phaser.Scene {
             this.wall(this.gameWidth - (26 * dpr), this.gameHeight - ((360 * dpr) / 2), 9 * dpr, 360 * dpr, COLOR.OUTER),
 
             // drops (left, right)
-            this.path((this.gameWidth / 2) - (75 * dpr), (this.gameHeight / 2) + (165 * dpr), PATHS.DROP_LEFT),
-            this.path((this.gameWidth / 2) + (70 * dpr), (this.gameHeight / 2) + (165 * dpr), PATHS.DROP_RIGHT),
+            this.path((this.gameWidth / 2) - (75 * dpr), (this.gameHeight / 2) + (165 * dpr), PATHS.DROP_LEFT, "leftB"),
+            this.path((this.gameWidth / 2) + (70 * dpr), (this.gameHeight / 2) + (165 * dpr), PATHS.DROP_RIGHT, "rightB"),
 
             // slingshots (left, right)
             // this.wall(120, 510, 20, 120, COLOR.INNER),
@@ -486,8 +521,8 @@ class PlayGame extends Phaser.Scene {
             this.wall((this.gameWidth / 2) + (80 * dpr), (this.gameHeight / 2) + (220 * dpr), 12 * dpr, 49 * dpr, COLOR.INNER, 0.96),
 
             // aprons (left, right)
-            this.path((this.gameWidth / 2) - (90 * dpr), (this.gameHeight / 2) + (285 * dpr), PATHS.APRON_LEFT),
-            this.path((this.gameWidth / 2) + (85 * dpr), (this.gameHeight / 2) + (285 * dpr), PATHS.APRON_RIGHT),
+            this.path((this.gameWidth / 2) - (90 * dpr), (this.gameHeight / 2) + (285 * dpr), PATHS.APRON_LEFT, "appronsLeft"),
+            this.path((this.gameWidth / 2) + (85 * dpr), (this.gameHeight / 2) + (285 * dpr), PATHS.APRON_RIGHT, "appronsRight"),
 
             // reset zones (center, right)
             // this.reset(225, 50),
@@ -507,12 +542,14 @@ class PlayGame extends Phaser.Scene {
             .setScale(0.23 * dpr);
 
         let leftB = this.matter.add.image((this.gameWidth / 2) - (70 * dpr), (this.gameHeight / 2) + (165 * dpr), 'leftB', null, {
+                label: "leftB",
                 isStatic: true,
                 isSensor: true
             })
             .setScale(0.23 * dpr);
 
         let rightB = this.matter.add.image((this.gameWidth / 2) + (65 * dpr), (this.gameHeight / 2) + (165 * dpr), 'rightB', null, {
+                label: "rightB",
                 isStatic: true,
                 isSensor: true
             })
@@ -542,23 +579,23 @@ class PlayGame extends Phaser.Scene {
             })
             .setScale(0.25 * dpr);
 
-        let bumper100 = this.matter.add.image((this.gameWidth / 2) - (24 * dpr), 276 * dpr, 'bumper100', null, {
+        let bumper100 = this.matter.add.image((this.gameWidth / 2) + (42 * dpr), (this.gameHeight / 2) - (66 * dpr), 'bumper100', null, {
                 isStatic: true,
                 isSensor: true
             })
-            .setScale(0.2 * dpr);
+            .setScale(0.24 * dpr);
 
-        let bumper200 = this.matter.add.image((this.gameWidth / 2) - (20 * dpr), 213 * dpr, 'bumper200', null, {
+        let bumper200 = this.matter.add.image((this.gameWidth / 2) - (20 * dpr), (this.gameHeight / 2) - (100 * dpr), 'bumper200', null, {
                 isStatic: true,
                 isSensor: true
             })
-            .setScale(0.25 * dpr);
+            .setScale(0.23 * dpr);
 
-        let bumper500 = this.matter.add.image((this.gameWidth / 2) + (42 * dpr), 245 * dpr, 'bumper500', null, {
+        let bumper500 = this.matter.add.image((this.gameWidth / 2) - (24 * dpr), (this.gameHeight / 2) - (36 * dpr), 'bumper500', null, {
                 isStatic: true,
                 isSensor: true
             })
-            .setScale(0.3 * dpr);
+            .setScale(0.24 * dpr);
     }
 
     createPaddles() {
@@ -614,8 +651,8 @@ class PlayGame extends Phaser.Scene {
         paddleLeft.con = this.matter.constraint.create({
             bodyA: paddleLeft.comp,
             pointA: {
-                x: -35,
-                y: -4.5
+                x: -17.5 * dpr,
+                y: -2.25 * dpr
             },
             bodyB: paddleLeft.hinge,
             length: 0,
@@ -664,8 +701,8 @@ class PlayGame extends Phaser.Scene {
         paddleRight.con = this.matter.constraint.create({
             bodyA: paddleRight.comp,
             pointA: {
-                x: 35,
-                y: -4.5
+                x: 17.5 * dpr,
+                y: -2.25 * dpr
             },
             bodyB: paddleRight.hinge,
             length: 0,
@@ -750,21 +787,90 @@ class PlayGame extends Phaser.Scene {
 
         // regulate pinball
         let scene = this;
-        this.matter.world.on('beforeUpdate', function (event) {
+        this.matter.world.on('beforeupdate', function (event) {
             // bumpers can quickly multiply velocity, so keep that in check
-            scene.matter.body.setVelocity(pinball.body, {
-                x: Math.max(Math.min(pinball.body.velocity.x, MAX_VELOCITY), -MAX_VELOCITY),
-                y: Math.max(Math.min(pinball.body.velocity.y, MAX_VELOCITY), -MAX_VELOCITY),
-            });
-
-            // cheap way to keep ball from going back down the shooter lane
-            if (pinball.body.position.x > 450 && pinball.body.velocity.y > 0) {
+            let maxSpeed = MAX_VELOCITY / 2;
+            if (pinball.body.velocity.x > maxSpeed) {
                 scene.matter.body.setVelocity(pinball.body, {
-                    x: 0,
-                    y: -10
+                    x: maxSpeed,
+                    y: pinball.body.velocity.y
                 });
             }
+
+            if (pinball.body.velocity.x < -maxSpeed) {
+                scene.matter.body.setVelocity(pinball.body, {
+                    x: -maxSpeed,
+                    y: pinball.body.velocity.y
+                });
+            }
+
+            if (pinball.body.velocity.y > maxSpeed) {
+                scene.matter.body.setVelocity(pinball.body, {
+                    x: pinball.body.velocity.x,
+                    y: maxSpeed
+                });
+            }
+
+            if (pinball.body.velocity.y < -maxSpeed) {
+                scene.matter.body.setVelocity(pinball.body, {
+                    x: -pinball.body.velocity.x,
+                    y: -maxSpeed
+                });
+            }
+            // scene.matter.body.setVelocity(pinball.body, {
+            //     x: Math.max(Math.min(pinball.body.velocity.x, MAX_VELOCITY), -MAX_VELOCITY),
+            //     y: Math.max(Math.min(pinball.body.velocity.y, MAX_VELOCITY), -MAX_VELOCITY),
+            // });
+
+            // cheap way to keep ball from going back down the shooter lane
+            // if (pinball.body.position.x > 450 && pinball.body.velocity.y > 0) {
+            //     scene.matter.body.setVelocity(pinball.body, {
+            //         x: 0,
+            //         y: -10
+            //     });
+            // }
         });
+
+        this.matter.world.on('afterupdate', function (event) {
+            Phaser.Physics.Matter.Matter.Query.ray(pinball.body, {
+                x: pinball.body.position.x,
+                y: pinball.body.position.x
+            }, {
+                x: pinball.body.position.x,
+                y: pinball.body.position.x
+            })
+        });
+
+        this.matter.world.on("collisionstart", event => {
+            // scene.matter.body.setVelocity(pinball.body, {
+            //     x: pinball.body.velocity.x + MAX_VELOCITY,
+            //     y: pinball.body.velocity.y - MAX_VELOCITY
+            // });
+            event.pairs.forEach(element => {
+                if (element.bodyB.label == "pinball") {
+                    if (element.bodyA.gameObject != null) {
+                        // console.log(element);
+                        if (element.bodyA.gameObject.body.label == "rightC") {
+                            console.log(element.bodyA);
+                        } else if (element.bodyA.gameObject.body.label == "rightB") {
+                            // console.log(element.bodyA.gameObject.body);
+                            // this.matter.body.setVelocity(pinball.body, {
+                            //     x: pinball.body.velocity.x - 10 + this.rand(-2, 2),
+                            //     y: pinball.body.velocity.y - 10 + this.rand(-2, 2)
+                            // });
+                            // this.matter.body.setAngularVelocity(pinball.body, 0);
+                        } else if (element.bodyA.gameObject.body.label == "leftB") {
+                            // console.log(element.bodyA.gameObject.body);
+                            // this.matter.body.setVelocity(pinball.body, {
+                            //     x: pinball.body.velocity.x + 10 + this.rand(-2, 2),
+                            //     y: pinball.body.velocity.y + 10 + this.rand(-2, 2)
+                            // });
+                            // this.matter.body.setAngularVelocity(pinball.body, 0);
+                        }
+                    }
+                }
+            });
+        })
 
         // mouse drag (god mode for grabbing pinball)
         // this.matter.composite.add("afterAdd");
@@ -828,11 +934,11 @@ class PlayGame extends Phaser.Scene {
     updateScore(newCurrentScore) {
         currentScore = newCurrentScore;
         // $currentScore.text(currentScore);
-        console.log(`currentScore: ${currentScore}`);
+        // console.log(`currentScore: ${currentScore}`);
 
         highScore = Math.max(currentScore, highScore);
         // $highScore.text(highScore);
-        console.log(`highScore: ${highScore}`);
+        // console.log(`highScore: ${highScore}`);
     }
 
     pingBumper(bumper) {
