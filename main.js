@@ -66,7 +66,7 @@ window.onload = function () {
                     timestamp: 0,
                     timeScale: 1
                 },
-                debug: false
+                debug: true
             },
         },
         scene: [PlayGame]
@@ -734,8 +734,9 @@ class PlayGame extends Phaser.Scene {
                 type: "circle"
             },
             isStatic: false,
-            friction: 0,
+            // friction: 0.002,
             frictionAir: 0.0002,
+            // restitution: 0.4,
             mass: 4,
             inverseMass: 2,
             // restitution: 0.002,
