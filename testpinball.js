@@ -725,12 +725,40 @@ class PlayGame extends Phaser.Scene {
     }
 
     createPinball() {
+        let PX2M = 0.01;
+        let x = this.gameWidth / 2;
+        let y = this.gameHeight / 2;
+
+        // test ball using planck-js
+        // Init World
+        this.world = planck.World(planck.Vec2(0, 3));
+        this.balls = this.world.createBody({
+            position: planck.Vec2(x, y),
+            type: 'dynamic',
+            bullet: true,
+        });
+        this.balls.createFixture(planck.Circle(0.2), 1.0);
+        const positionMeter = this.balls.getPosition();
+        const positionPixel = {
+            x: (1 / PX2M) * positionMeter.x,
+            y: (1 / PX2M) * positionMeter.y,
+        };
+        console.log(positionPixel);
+
+        // new Circle(this, this.world, x, y, 25, true, false);
+        // this.ballsprite = this.matter.add.circle(positionMeter.x, positionMeter.y, 14, {
+        //     render: {
+        //         lineThickness: 4
+        //     }
+        // });
+
         // x/y are set to when pinball is launched
         pinball = this.matter.bodies.circle(0, 0, 12, {
             label: 'pinball',
             collisionFilter: {
                 group: stopperGroup
             },
+            // position: planck.Vec2(PX2M * x, PX2M * y),
             render: {
                 fillStyle: COLOR.PINBALL,
                 lineThickness: 4
@@ -1042,8 +1070,12 @@ class PlayGame extends Phaser.Scene {
         });
         this.matter.body.setAngularVelocity(pinball, 0);
     }
+
     update(time, delta) {
         // console.log(`${time} and ${delta}`);
+        this.world.step(1 / 30);
+        this.world.clearForces();
+
         if (isFalling) {
             isFalling = false;
             this.launchPinball();
@@ -1065,4 +1097,65 @@ class PlayGame extends Phaser.Scene {
     }
 
 
+}
+
+class Circle extends Phaser.GameObjects.Sprite {
+    constructor(scene, sp, x, y, radius, isDynamic, isFixed) {
+        super(scene, x, y);
+
+        const rnd =
+            Math.random()
+            .toString(36)
+            .substring(2, 15) +
+            Math.random()
+            .toString(36)
+            .substring(2, 15);
+
+        const graphics = scene.add.graphics();
+        graphics.fillStyle(0x333333, 1);
+        graphics.fillCircle(radius, radius, radius);
+
+        graphics.generateTexture(rnd, radius * 2, radius * 2);
+        graphics.destroy();
+
+        this.setTexture(rnd);
+        this.scene = scene;
+        this.sp = sp;
+        this.isDynamic = isDynamic;
+        this.isFixed = isFixed;
+        this.scene.add.existing(this);
+
+        this.radius = radius;
+
+        this.x = x;
+        this.y = y;
+
+        // Body
+        this.b = sp.createBody();
+        if (this.isDynamic) {
+            this.b.setDynamic();
+        }
+
+        this.b.createFixture(planck.Circle(radius / sp.scaleFactor), {
+            friction: 0.1,
+            restitution: 0.5,
+            density: 1
+        });
+        this.b.setPosition(
+            planck.Vec2(this.x / sp.scaleFactor, this.y / sp.scaleFactor)
+        );
+        this.b.setMassData({
+            mass: 1,
+            center: planck.Vec2(),
+            I: 1
+        });
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        let p = this.b.getPosition();
+        this.x = p.x * this.sp.scaleFactor;
+        this.y = p.y * this.sp.scaleFactor;
+        this.rotation = this.b.getAngle();
+    }
 }
