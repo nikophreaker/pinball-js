@@ -1,9 +1,9 @@
 if (typeof require !== 'undefined') {
     // var Vec2 = require('vec2');
-    var segseg = require('segseg');
-    var Line2 = require('line2');
-    var polygonBoolean = require('2d-polygon-boolean');
-    var selfIntersections = require('2d-polygon-self-intersections');
+    // var segseg = require('segseg');
+    // var Line2 = require('line2');
+    // var polygonBoolean = require('2d-polygon-boolean');
+    // var selfIntersections = require('2d-polygon-self-intersections');
 }
 
 var PI = Math.PI;

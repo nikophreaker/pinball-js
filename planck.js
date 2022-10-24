@@ -947,7 +947,7 @@
          * The maximum number of vertices on a convex polygon. You cannot increase this
          * too much because BlockAllocator has a maximum object size.
          */
-        Settings.maxPolygonVertices = 12;
+        Settings.maxPolygonVertices = 2276; //12;
         /**
          * This is used to fatten AABBs in the dynamic tree. This allows proxies to move
          * by a small amount without triggering a tree adjustment. This is in meters.

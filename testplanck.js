@@ -96,10 +96,30 @@ class PlayGame extends Phaser.Scene {
         super("PlayGame");
     }
 
-    preload() {
+    init() {
+        // Init World
+        this.world = planck.World(planck.Vec2(0, 3));
+
+        //init scale window
         dpr = window.devicePixelRatio;
+
+        // init canvas size
         this.gameWidth = this.sys.game.scale.width
         this.gameHeight = this.sys.game.scale.height
+        this.halfWidth = this.gameWidth / 2;
+        this.halfHeight = this.gameHeight / 2;
+        let PX2M = 0.01;
+
+        // Box2D works with meters. We need to convert meters to pixels.
+        // let's say 30 pixels = 1 meter.
+        // this.worldScale = 30;
+        this.scaleFactor = 30;
+
+        this.bodies = [];
+        this.gravity = 0; // 3 is normal
+    }
+
+    preload() {
         var progressBar = this.add.graphics();
         var progressBox = this.add.graphics();
         progressBox.fillStyle(0x222222, 0.8);
@@ -201,16 +221,6 @@ class PlayGame extends Phaser.Scene {
         return ((1 * window.devicePixelRatio) / 4) - offset;
     }
 
-    init() {
-        this.width = 640;
-        this.height = 480;
-        this.halfWidth = this.width / 2;
-        this.halfHeight = this.height / 2;
-        this.scaleFactor = 30;
-        this.bodies = [];
-        this.gravity = 0; // 3 is normal
-    }
-
     create() {
         console.log(`DPR: ${window.devicePixelRatio}`);
         console.log(this.scaleWithRatioPixel(0));
@@ -228,47 +238,103 @@ class PlayGame extends Phaser.Scene {
         // this.btnStart.on("pointerout", function () {
         //     btnStart.setScale(btnStartOut);
         // });
-        this.createPinball();
-        // this.btnStart.on("pointerdown", this.createPinball, this);
+        this.enterGame();
+        // this.btnStart.on("pointerdown", this.enterGame, this);
     }
 
-    createPinball() {
-        let PX2M = 0.01;
-        let x = this.gameWidth / 2;
-        let y = this.gameHeight / 2;
-        // test ball using planck-js
-        // Init World
-        var ww = this.world = planck.World(planck.Vec2(0, 3));
-        // this.balls = this.world.createBody({
-        //     position: planck.Vec2(x, y),
-        //     type: 'dynamic',
-        //     bullet: true,
+    enterGame() {
+        this.shapes = this.cache.json.get('shapes');
+
+        this.add.image(this.halfWidth - (3 * dpr), this.halfHeight + (11 * dpr), 'bgPinball', null, {
+                isStatic: true,
+                isSensor: true,
+            })
+            .setScale(0.25 * dpr);
+
+        this.createBall();
+        this.createWall();
+        this.createPaddle();
+        this.createControlKey();
+        this.createContactEvents();
+
+        // const runner = new Runner(ww, {
+        //     fps: 60,
+        //     speed: 1,
+        // })
+
+        // runner.start(() => {
+        //     renderer.renderWorld()
         // });
-        // this.balls.createFixture(planck.Circle(0.2), 1.0);
-        // const positionMeter = this.balls.getPosition();
-        // const positionPixel = {
-        //     x: (1 / PX2M) * positionMeter.x,
-        //     y: (1 / PX2M) * positionMeter.y,
-        // };
+        let gw = this.gameWidth;
+        let gh = this.gameHeight
+        let ww = this.world;
+        // planck.testbed(function (testbed) {
+        //     var world = ww;
+        //     testbed.width = 20.5;
+        //     testbed.height = 5;
+        //     testbed.x = 10.2;
+        //     testbed.y = -20;
+        //     // console.log(testbed);
+        //     return world;
+        // });
 
-        // const canvas = {
-        //     width: positionPixel.x,
-        //     height: positionPixel.y,
-        // };
+    }
 
-        var shapes = this.cache.json.get('shapes');
+    createWall() {
+        this.topWall = new Edge(this, 0, this.gameHeight - (2 * dpr), this.gameWidth, this.gameHeight - (2 * dpr), false, "topWall");
+        this.bottomWall = new Edge(this, this.halfWidth - (150 * dpr), 0, this.halfWidth + (150 * dpr), 0, false, "bottomWall");
+        this.leftWall = new Edge(this, this.halfWidth - (150 * dpr), 0, this.halfWidth - (150 * dpr), this.gameHeight, false, "leftWall");
+        this.rightWall = new Edge(this, this.halfWidth + (150 * dpr), 0, this.halfWidth + (150 * dpr), this.gameHeight, false, "rightWall");
 
         const {
-            points: skullPoints
-        } = getPoints(shapes, "toggle_left");
+            points: rightInnerWallPoints
+        } = getPoints(this.shapes, "wall4");
+        // this.rightInnerWall = new Poly(this, this.gameWidth - (50 * dpr), this.halfHeight + (100 * dpr), "wall3", rightInnerWallPoints, false, true, 0.45);
+        this.tests = new ChainShape(this, this.halfWidth, (75 * dpr), "dome", this.shapes.dome2.fixtures[0].vertices, false, true, 0.6, "dome");
+        this.tests = new ChainShape(this, this.halfWidth + (92 * dpr), this.halfHeight + (57 * dpr), "wall1", this.shapes.wall4.fixtures[0].vertices, false, true, 0.5, "wall1");
+        this.tests = new ChainShape(this, (25 * dpr), this.halfHeight + (65 * dpr), "wall2", this.shapes.wall5.fixtures[0].vertices, false, true, 0.5, "wall2");
 
-        new Edge(this, 0, this.gameHeight - 40, this.gameWidth, this.gameHeight - 40);
-        let leftWall = new Edge(this, (this.gameWidth / 2) - 100, 0, (this.gameWidth / 2) - 100, this.gameHeight);
-        let rightWall = new Edge(this, (this.gameWidth / 2) + 100, 0, (this.gameWidth / 2) + 100, this.gameHeight);
-        let circle = new Circle(this, x, y, 50, true, false);
-        let circle2 = new Circle(this, x / 2, y / 2, 25, true, false);
-        let flipper = new Poly(this, x, y / 2, "toggleLeft", skullPoints, true, false);
-        // let flipper = new Flipper(this, x - 50, y + 100, leftWall.b, rightWall.b, canvas);
+        this.trigger = new Rectangle(this, this.halfWidth + (134 * dpr), this.halfHeight + (260 * dpr), "trigger", (10 * dpr), (5 * dpr), true, false);
+    }
+
+    createPaddle() {
+        const {
+            points: toggleLeftPoints
+        } = getPoints(this.shapes, "toggle_left");
+
+        const {
+            points: toggleRightPoints
+        } = getPoints(this.shapes, "toggle_right");
+
+        this.circle2 = new Circle(this, this.halfWidth - (55.5 * dpr), this.halfHeight + (235 * dpr), "", 12, false, false);
+        this.circle3 = new Circle(this, this.halfWidth + (55.5 * dpr), this.halfHeight + (235 * dpr), "", 12, false, false);
+        this.flipper = new Poly(this, this.halfWidth - (35.5 * dpr), this.halfHeight + (245 * dpr), "toggleLeft", toggleLeftPoints, true, false, 0.45, "leftPaddle");
+        this.flipper2 = new Poly(this, this.halfWidth + (35.5 * dpr), this.halfHeight + (245 * dpr), "toggleRight", toggleRightPoints, true, false, 0.45, "rightPaddle");
+        this.paddleWall1 = new ChainShape(this, this.halfWidth - (84 * dpr), this.halfHeight + (186 * dpr), "leftC", this.shapes.paddlewall1.fixtures[0].vertices, false, true, 0.45, "leftC");
+        this.paddleWall1 = new ChainShape(this, this.halfWidth + (80 * dpr), this.halfHeight + (188 * dpr), "rightC", this.shapes.paddlewall2.fixtures[0].vertices, false, true, 0.45, "rightC");
+
+        this.jointLeftPaddle = this.world.createJoint(planck.RevoluteJoint({
+            enableMotor: true,
+            motorSpeed: 0.0,
+            maxMotorTorque: 2000,
+            enableLimit: true,
+            lowerAngle: -0.4 * Math.PI, // -90 degrees
+            upperAngle: 0 * Math.PI, // 45 degrees
+            // lowerAngle: -20 * (Math.PI / 180.0),
+            // upperAngle: 25 * (Math.PI / 180.0),
+        }, this.circle2.b, this.flipper.b, this.circle2.b.m_sweep.c));
+
+        this.jointRightPaddle = this.world.createJoint(planck.RevoluteJoint({
+            enableMotor: true,
+            motorSpeed: 0.0,
+            maxMotorTorque: 2000,
+            enableLimit: true,
+            lowerAngle: 0 * Math.PI,
+            upperAngle: 0.4 * Math.PI
+        }, this.circle3.b, this.flipper2.b, this.circle3.b.m_sweep.c));
+    }
+
+    createControlKey() {
 
         // keyboard paddle events
         this.btnSpace = this.input.keyboard.addKey("SPACE");
@@ -279,318 +345,59 @@ class PlayGame extends Phaser.Scene {
             console.log("SPACE BTN UP");
         }, this);
 
+        let leftPaddle = this.jointLeftPaddle;
         this.leftBtn = this.input.keyboard.addKey("LEFT");
         this.leftBtn.on("down", function () {
-            flipper.rotateLeft();
-            console.log("LEFT BTN DOWN");
+            leftPaddle.setMotorSpeed(-20);
         }, this);
         this.leftBtn.on("up", function () {
-            flipper.resetLeft();
-            console.log("LEFT BTN UP");
+            leftPaddle.setMotorSpeed(20);
         }, this);
 
+        let rightPaddle = this.jointRightPaddle;
         this.rightBtn = this.input.keyboard.addKey("RIGHT");
         this.rightBtn.on("down", function () {
-            isRightPaddleUp = true;
+            rightPaddle.setMotorSpeed(20);
         }, this);
+
         this.rightBtn.on("up", function () {
-            isRightPaddleUp = false;
+            rightPaddle.setMotorSpeed(-20);
         }, this);
-        var testPhaser = this;
-        // planck.testbed(function (testbed) {
-        //     var pl = planck,
-        //         Vec2 = pl.Vec2;
-        //     var world = new pl.World(Vec2(0, -10));
+    }
 
-        //     // var ground = world.createBody();
+    createContactEvents() {
+        let ww = this;
+        let ballsss = this.circle.b;
+        // console.log(this.circle.b);
+        ww.world.on("begin-contact", function (contact) {
+            let labelBodyA = contact.m_fixtureA.m_userData;
+            let labelBodyB = contact.m_fixtureB.m_userData;
+            if (labelBodyA == "topWall" && labelBodyB == "ballss") {
+                ww.circle.destroy();
+            }
+            if (labelBodyA == "wall4" && labelBodyB == "ballss") {
+                console.log(labelBodyA);
+            }
+        });
+    }
 
-        //     // var groundFD = {
-        //     //     filterCategoryBits: 2,
-        //     //     filterMaskBits: 0xFFFF,
-        //     //     filterGroupIndex: 0,
-        //     // };
-        //     // ground.createFixture(pl.Edge(Vec2(-40.0, 0.0), Vec2(40.0, 0.0)), groundFD);
-
-        //     // var rotator = world.createDynamicBody(Vec2(-10.0, 20.0));
-        //     // rotator.createFixture(pl.Circle(2.5), 5.0);
-
-        //     // var w = 100.0;
-        //     // rotator.setAngularVelocity(w);
-        //     // rotator.setLinearVelocity(Vec2(-8.0 * w, 0.0));
-
-        //     // var joint = world.createJoint(pl.RevoluteJoint({
-        //     //     // motorSpeed: 1.0 * Math.PI,
-        //     //     // maxMotorTorque: 10000.0,
-        //     //     // enableMotor: true,
-        //     //     // lowerAngle: -0.25 * Math.PI,
-        //     //     // upperAngle: 0.5 * Math.PI,
-        //     //     // enableLimit: false,
-        //     //     // collideConnected: true,
-        //     //     enableMotor: true,
-        //     //     motorSpeed: 0.0,
-        //     //     maxMotorTorque: 10,
-        //     //     enableLimit: false,
-        //     //     // lowerAngle: -0.5 * Math.PI, // -90 degrees
-        //     //     // upperAngle: 0.25 * Math.PI, // 45 degrees
-        //     //     lowerAngle: -20 * (Math.PI / 180.0),
-        //     //     upperAngle: 5 * (Math.PI / 180.0),
-        //     // }, ground, rotator, Vec2(-10.0, 12.0)));
-
-        //     var ball = world.createDynamicBody(Vec2(15.0, 30.0));
-        //     ball.createFixture(pl.Circle(1.0), {
-        //         density: 1.0,
-        //         // filterMaskBits: 1,
-        //     });
-        //     ball.setMassData({
-        //         mass: 0,
-        //         center: planck.Vec2(),
-        //         I: 1
-        //     });
-        //     // var platform = world.createBody({
-        //     //     position: Vec2(20.0, 10.0),
-        //     //     type: 'dynamic',
-        //     //     bullet: true,
-        //     // });
-        //     // platform.createFixture(pl.Box(10.0, 0.2, Vec2(-10.0, 0.0), 0.0), 2.0);
-
-        //     // world.createJoint(pl.RevoluteJoint({
-        //     //     lowerAngle: -0.25 * Math.PI,
-        //     //     upperAngle: 0.0 * Math.PI,
-        //     //     enableLimit: true,
-        //     // }, ground, platform, Vec2(20.0, 10.0)));
-
-        //     // // Tests mass computation of a small object far from the origin
-        //     // var triangle = world.createDynamicBody();
-
-        //     // triangle.createFixture(pl.Polygon([
-        //     //     Vec2(17.63, 36.31),
-        //     //     Vec2(17.52, 36.69),
-        //     //     Vec2(17.19, 36.36)
-        //     // ]), 1); // assertion hits inside here
-
-        //     // testbed.keydown = function (code, char) {
-        //     //     switch (char) {
-        //     //         case 'Z':
-        //     //             joint.enableLimit(!joint.isLimitEnabled());
-        //     //             break;
-
-        //     //         case 'X':
-        //     //             joint.enableMotor(!joint.isMotorEnabled());
-        //     //             break;
-        //     //     }
-        //     // };
-
-        //     // testbed.step = function (settings) {
-        //     //     // if (stepCount++ == 360) {
-        //     //     //   ball.setTransform(Vec2(0.0, 0.5), 0.0);
-        //     //     // }
-
-        //     //     testbed.status('Motor Torque', joint.getMotorTorque(testbed.hz));
-        //     //     // testbed.status('Motor Force', joint.getMaxForce());
-        //     // };
-
-        //     // testbed.info('Z: Limits, X: Motor');
-
-
-
-        //     let bd1 = world.createBody({
-        //         type: "static"
-        //     });
-        //     bd1.createFixture(
-        //         planck.Polygon(
-        //             // [planck.Vec2(0, 200 / 30), planck.Vec2(280 / 30, 200 / 30), planck.Vec2(280 / 30, 400 / 30), planck.Vec2(0, 400 / 30)]
-        //             // [planck.Vec2(0, 0), planck.Vec2(280 / 30, 0), planck.Vec2(280 / 30, 200 / 30), planck.Vec2(0, 200 / 30)]
-        //             [planck.Vec2(-(140 / 30), -(100 / 30)), planck.Vec2(140 / 30, -(100 / 30)), planck.Vec2(140 / 30, 100 / 30), planck.Vec2(-(140 / 30), 100 / 30)]
-        //         ), {
-        //             userData: "shape1",
-        //             friction: 0.1,
-        //             restitution: 0.5,
-        //             density: 1
-        //         }
-        //     );
-        //     bd1.setPosition(
-        //         planck.Vec2((x / 30), (y / 30)));
-        //     bd1.setMassData({
-        //         mass: 1,
-        //         center: planck.Vec2(),
-        //         I: 1
-        //     });
-        //     console.log(bd1.m_sweep.c);
-
-        //     let circleCoordinate = world.createBody({
-        //         type: "static"
-        //     });
-        //     circleCoordinate.createFixture(planck.Circle(planck.Vec2((x / 30), (y / 30) + 45)), 14);
-
-        //     let bd2 = world.createBody({
-        //         type: "dynamic"
-        //     });
-        //     bd2.createFixture(
-        //         planck.Polygon(
-        //             [planck.Vec2(0, 0), planck.Vec2(280 / 30, 0), planck.Vec2(0, 200 / 30)]
-        //             // [planck.Vec2(0, 50 / 30), planck.Vec2(280 / 30, 50 / 30), planck.Vec2(350 / 30, 50 / 30), planck.Vec2(350 / 30, 100 / 30), planck.Vec2(550 / 30, 50 / 30), planck.Vec2(0, 100 / 30)]
-        //         ), {
-        //             userData: "shape1",
-        //             friction: 0.1,
-        //             restitution: 0.5,
-        //             density: 1
-        //         }
-        //     );
-        //     bd2.setPosition(
-        //         planck.Vec2(bd1.getPosition().x + 1, bd1.getPosition().y));
-        //     bd2.setMassData({
-        //         mass: 1,
-        //         center: planck.Vec2(),
-        //         I: 1
-        //     });
-        //     bd2.setAngle(25);
-
-        //     let bd3 = world.createBody({
-        //         type: "dynamic"
-        //     });
-        //     bd3.createFixture(
-        //         planck.Polygon(
-        //             // [planck.Vec2(280 / 30, 200 / 30), planck.Vec2(0, 200 / 30), planck.Vec2(280 / 30, 400 / 30)]
-        //             [planck.Vec2(280 / 30, 0), planck.Vec2(0, 0), planck.Vec2(280 / 30, 200 / 30)]
-        //         ), {
-        //             userData: "shape2",
-        //             friction: 0.1,
-        //             restitution: 0.5,
-        //             density: 1
-        //         }
-        //     );
-        //     bd3.setPosition(
-        //         planck.Vec2(bd1.getPosition().x - 10, bd1.getPosition().y));
-        //     bd3.setMassData({
-        //         mass: 1,
-        //         center: planck.Vec2(),
-        //         I: 1
-        //     });
-
-        //     let rj = planck.RevoluteJoint({
-        //         enableMotor: true,
-        //         motorSpeed: 0.0,
-        //         maxMotorTorque: 20000,
-        //         enableLimit: true,
-        //         lowerAngle: 0 * Math.PI, // -90 degrees
-        //         upperAngle: 0.25 * Math.PI, // 45 degrees
-        //         // lowerAngle: -20 * (Math.PI / 180.0),
-        //         // upperAngle: 25 * (Math.PI / 180.0),
-        //     }, bd1, bd2, bd1.m_sweep.c);
-
-        //     let rj2 = planck.RevoluteJoint({
-        //         enableMotor: true,
-        //         motorSpeed: 0.0,
-        //         maxMotorTorque: 20000,
-        //         enableLimit: true,
-        //         lowerAngle: -0.25 * Math.PI, // -90 degrees
-        //         upperAngle: 0 * Math.PI, // 45 degrees
-        //         // lowerAngle: -25 * (Math.PI / 180.0),
-        //         // upperAngle: 20 * (Math.PI / 180.0),
-        //     }, bd1, bd3, bd1.m_sweep.c);
-
-        //     world.createJoint(rj);
-        //     world.createJoint(rj2);
-
-        //     testPhaser.leftBtn = testPhaser.input.keyboard.addKey("LEFT");
-        //     testPhaser.leftBtn.on("down", function () {
-        //         rj2.setMotorSpeed(-20);
-        //         console.log("LEFT BTN DOWN2");
-        //     }, testPhaser);
-        //     testPhaser.leftBtn.on("up", function () {
-        //         rj2.setMotorSpeed(20);
-        //         console.log("LEFT BTN UP2");
-        //     }, testPhaser);
-
-        //     testPhaser.rightBtn = testPhaser.input.keyboard.addKey("RIGHT");
-        //     testPhaser.rightBtn.on("down", function () {
-        //         rj.setMotorSpeed(20);
-        //     }, testPhaser);
-        //     testPhaser.rightBtn.on("up", function () {
-        //         rj.setMotorSpeed(-20);
-        //     }, testPhaser);
-
-
-
-        //     return world;
-        // });
-        // planck.testbed(function (testbed) {
-        //     // Create a world
-        //     var world = ww;
-
-        //     // let bd1 = world.createBody({
-        //     //     type: "static"
-        //     // });
-        //     // bd1.createFixture(
-        //     //     planck.Polygon(
-        //     //         [planck.Vec2(100 / 30, 200 / 30), planck.Vec2(180 / 30, 300 / 30), planck.Vec2(100 / 30, 300 / 30), planck.Vec2(100 / 30, 250 / 30)]
-        //     //     ), {
-        //     //         userData: "shape1",
-        //     //         friction: 0.1,
-        //     //         restitution: 0.5,
-        //     //         density: 1
-        //     //     }
-        //     // );
-        //     // bd1.setPosition(
-        //     //     planck.Vec2((x / 30) - 35, y / 30));
-        //     // bd1.setMassData({
-        //     //     mass: 1,
-        //     //     center: planck.Vec2(),
-        //     //     I: 1
-        //     // });
-
-        //     // let bd2 = world.createBody({
-        //     //     type: "static"
-        //     // });
-        //     // bd2.createFixture(
-        //     //     planck.Polygon(
-        //     //         [planck.Vec2(100 / 30, 200 / 30), planck.Vec2(180 / 30, 200 / 30), planck.Vec2(180 / 30, 300 / 30), planck.Vec2(100 / 30, 300 / 30), planck.Vec2(100 / 30, 250 / 30)]
-        //     //     ), {
-        //     //         userData: "shape1",
-        //     //         friction: 0.1,
-        //     //         restitution: 0.5,
-        //     //         density: 1
-        //     //     }
-        //     // );
-        //     // // bd2.setPosition(
-        //     // //     planck.Vec2(bd1.getPosition().x - 1.5, bd1.getPosition().y - 1.5));
-        //     // bd2.setMassData({
-        //     //     mass: 1,
-        //     //     center: planck.Vec2(),
-        //     //     I: 1
-        //     // });
-
-        //     // let rj = planck.RevoluteJoint({
-        //     //     enableMotor: true,
-        //     //     motorSpeed: 0.0,
-        //     //     maxMotorTorque: 10,
-        //     //     enableLimit: true,
-        //     //     // lowerAngle: -0.5 * Math.PI, // -90 degrees
-        //     //     // upperAngle: 0.25 * Math.PI, // 45 degrees
-        //     //     lowerAngle: -20 * (Math.PI / 180.0),
-        //     //     upperAngle: 5 * (Math.PI / 180.0),
-        //     // }, bd1, bd2, bd1.getWorldCenter());
-
-        //     // world.createJoint(rj);
-
-        //     // Make sure you return the world
-        //     return world;
-        // });
-        // planck.testbed(function () {
-        //     var world = ww;
-        //     return world;
-        // });
+    createBall() {
+        // create ball
+        this.circle = new Circle(this, this.halfWidth, this.halfHeight, "ball", 24.5, true, false, "ballss");
     }
 
     update() {
-        this.world.step(1 / 16);
+        // advance the simulation by 1/20 seconds
+        this.world.step(1 / 30);
+
+        // crearForces  method should be added at the end on each step
         this.world.clearForces();
     }
 
 }
 
 class Circle extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, radius, isDynamic, isFixed) {
+    constructor(scene, x, y, key, radius, isDynamic, isFixed, label) {
         super(scene, x, y);
 
         const rnd =
@@ -608,7 +415,11 @@ class Circle extends Phaser.GameObjects.Sprite {
         graphics.generateTexture(rnd, radius * 2, radius * 2);
         graphics.destroy();
 
-        this.setTexture(rnd);
+        if (key != "") {
+            this.setTexture(key);
+        }
+        this.displayWidth = radius * 2;
+        this.displayHeight = radius * 2;
         this.scene = scene;
         this.isDynamic = isDynamic;
         this.isFixed = isFixed;
@@ -620,19 +431,122 @@ class Circle extends Phaser.GameObjects.Sprite {
         this.y = y;
 
         // Body
+        this.b = scene.world.createBody({
+            userData: label
+        });
+        if (this.isDynamic) {
+            this.b.setDynamic();
+        }
+        // console.log(scene.world);
+        // const init = img => {
+        this.b.createFixture(planck.Circle(radius / 30), {
+            friction: 0.1,
+            restitution: 0.5,
+            density: 1,
+            userData: label
+        });
+
+        this.b.setPosition(
+            planck.Vec2(this.x / 30, this.y / 30)
+        );
+
+        this.b.setMassData({
+            mass: 1,
+            center: planck.Vec2(),
+            I: 1
+        });
+
+        //     this.b.render = {
+        //         stroke: 'tomato',
+        //         custom: (ctx, pos, size) => {
+        //             ctx.drawImage(img, pos.x, pos.y, size, size)
+        //             return true // optional
+        //         }
+        //     }
+
+        // }
+
+        // const img = new Image()
+        // img.src = "./asset/img/ball.png" //"https://www.pngall.com/wp-content/uploads/5/Sports-Ball-Transparent.png"
+        // img.onload = () => {
+        //     init(img)
+        // }
+    }
+
+    destroy() {
+        let world = this.scene.world;
+        let ball = this.b;
+        // do not change world immediately
+        setTimeout(function () {
+            world.destroyBody(ball);
+        }, 1);
+        this.removeFromDisplayList();
+        // this.removedFromScene();
+        // this.scene.world.destroyBody(this.b);
+        // console.log(this.scene.world.destroyBody());
+        // this.b.m_destroyed = true
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        let p = this.b.getPosition();
+        this.x = p.x * 30;
+        this.y = p.y * 30;
+        this.rotation = this.b.getAngle();
+    }
+}
+
+class Rectangle extends Phaser.GameObjects.Sprite {
+    constructor(scene, x, y, key, width, height, isDynamic, isFixed) {
+        super(scene, x, y);
+
+        const rnd =
+            Math.random()
+            .toString(36)
+            .substring(2, 15) +
+            Math.random()
+            .toString(36)
+            .substring(2, 15);
+
+        const graphics = scene.add.graphics();
+        graphics.fillStyle(0x333333, 1);
+        graphics.fillRect(x, y, width, height);
+
+        graphics.generateTexture(rnd, width * 2, height * 2);
+        graphics.destroy();
+
+        if (key != "") {
+            this.setTexture(key);
+        }
+        this.displayWidth = width * 2;
+        this.displayHeight = height * 2;
+        this.scene = scene;
+        this.isDynamic = isDynamic;
+        this.isFixed = isFixed;
+        this.scene.add.existing(this);
+
+        this.width = width;
+        this.height = height;
+
+        this.x = x;
+        this.y = y;
+
+        // Body
         this.b = scene.world.createBody();
         if (this.isDynamic) {
             this.b.setDynamic();
         }
-
-        this.b.createFixture(planck.Circle(radius / 30), {
+        // const init = img => {
+        this.b.createFixture(planck.Box(width / 30, height / 30), {
             friction: 0.1,
             restitution: 0.5,
             density: 1
         });
+
         this.b.setPosition(
-            planck.Vec2(this.x / 30, 0)
+            planck.Vec2(this.x / 30, this.y / 30)
         );
+
         this.b.setMassData({
             mass: 1,
             center: planck.Vec2(),
@@ -650,7 +564,7 @@ class Circle extends Phaser.GameObjects.Sprite {
 }
 
 class Edge extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, x2, y2, isDynamic) {
+    constructor(scene, x, y, x2, y2, isDynamic, label) {
         super(scene, x, y);
 
         // We don't generate a texture because the bounds logic is annoying
@@ -684,7 +598,8 @@ class Edge extends Phaser.GameObjects.Sprite {
             ), {
                 friction: 1,
                 restitution: 0.5,
-                density: 1
+                density: 1,
+                userData: label
             }
         );
 
@@ -747,203 +662,22 @@ class Edge extends Phaser.GameObjects.Sprite {
         super.preUpdate(time, delta);
     }
 }
-let PX2M = 0.01;
-let THICKNESS = 10;
-class Flipper extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, wallLeft, wallRight, canvas) {
-        super(scene, x, y);
-        // this.p = p;
-        this.w = x / 6 - THICKNESS;
-        this.h = THICKNESS;
-
-        this.xLeft = x / 2 - this.w / 2 - THICKNESS;
-        this.yLeft = y - this.h / 2;
-        // this.xRight = canvas.width / 2 + this.w / 2 + THICKNESS;
-        // this.yRight = canvas.height - this.h / 2;
-
-        const rnd =
-            Math.random()
-            .toString(36)
-            .substring(2, 15) +
-            Math.random()
-            .toString(36)
-            .substring(2, 15);
-
-        // const graphics = scene.add.graphics();
-        // graphics.fillStyle(0x333333, 1);
-        // graphics.fillRect(PX2M * this.xLeft, PX2M * this.yLeft, 400, 200);
-
-        // graphics.generateTexture(rnd, 400, 200);
-        // graphics.destroy();
-
-        // this.setTexture("toggleLeft");
-        this.scene = scene;
-        this.scene.add.existing(this);
-
-        this.x = x;
-        this.y = y;
-
-        //make invisible talang
-        this.talangLeft = scene.world.createBody({
-            type: 'static'
-        });
-        this.talangLeft.createFixture(
-            planck.Box(
-                PX2M * 100,
-                PX2M * 200,
-                planck.Vec2(PX2M * (this.xLeft - 200), PX2M * (this.yLeft - 100)),
-            ), {
-                density: 1.0,
-                userData: 'talang-left',
-            },
-        );
-        this.talangLeft.setPosition(
-            planck.Vec2(this.x / 30, this.y / 30)
-        );
-        this.talangLeft.setMassData({
-            mass: 1,
-            center: planck.Vec2(),
-            I: 0
-        });
-
-        // rectangular body for left-flipper
-        this.bodyLeft = scene.world.createDynamicBody();
-        this.bodyLeft.createFixture(
-            planck.Box(
-                PX2M * 200,
-                PX2M * 100,
-                planck.Vec2(PX2M * this.xLeft, PX2M * this.yLeft),
-            ), {
-                density: 1.0,
-                userData: 'flipper-left',
-            },
-        );
-        this.bodyLeft.setPosition(
-            planck.Vec2(this.x / 30, this.y / 30)
-        );
-        this.bodyLeft.setMassData({
-            mass: 1,
-            center: planck.Vec2(),
-            I: 0
-        });
-        // // rectangular body for right-flipper
-        // this.bodyRight = world.world.createDynamicBody();
-        // this.bodyRight.createFixture(
-        //     planck.Box(
-        //         PX2M * (this.w / 2),
-        //         PX2M * (this.h / 2),
-        //         planck.Vec2(PX2M * this.xRight, PX2M * this.yRight),
-        //     ), {
-        //         density: 1.0,
-        //         userData: 'flipper-right',
-        //     },
-        // );
-
-        // hinge joint at end of left-flipper
-        const optionsLeft = {
-            enableMotor: true,
-            motorSpeed: 0.0,
-            maxMotorTorque: 10,
-            enableLimit: true,
-            // lowerAngle: -0.5 * Math.PI, // -90 degrees
-            // upperAngle: 0.25 * Math.PI, // 45 degrees
-            lowerAngle: -20 * (Math.PI / 180.0),
-            upperAngle: 5 * (Math.PI / 180.0),
-        };
-        this.centerRotationLeft = planck.Vec2(
-            // PX2M * (this.xLeft - this.w / 2),
-            // PX2M * this.yLeft,
-            PX2M * 50,
-            PX2M * 50
-        );
-
-        this.jointLeft = planck.RevoluteJoint(optionsLeft, this.talangLeft, this.bodyLeft,
-            this.talangLeft.getWorldCenter());
-        scene.world.createJoint(this.jointLeft);
-
-        // // hinge joint at end of right-flipper
-        // const optionsRight = {
-        //     enableMotor: true,
-        //     motorSpeed: 0.0,
-        //     maxMotorTorque: 10,
-        //     enableLimit: true,
-        //     lowerAngle: -5 * (Math.PI / 180.0),
-        //     upperAngle: 20 * (Math.PI / 180.0),
-        // };
-        // this.centerRotationRight = planck.Vec2(
-        //     PX2M * (this.xRight + this.w / 2),
-        //     PX2M * this.yRight,
-        // );
-        // this.jointRight = planck.RevoluteJoint(optionsRight, wallRight, this.bodyRight,
-        //     this.centerRotationRight);
-        // world.world.createJoint(this.jointRight);
-
-    }
-
-    preUpdate(time, delta) {
-        super.preUpdate(time, delta);
-        // let p = this.bodyLeft.getPosition();
-        // this.x = p.x * 30;
-        // this.y = p.y * 30;
-        // this.rotation = this.bodyLeft.getAngle();
-    }
-
-    draw() {
-        // rectangles at positions & angles of bodies (convert meters to pixels)
-        // this.p.push();
-        // this.p.fill('#00f');
-        // this.p.translate(
-        //     (1 / PX2M) * this.centerRotationLeft.x,
-        //     (1 / PX2M) * this.centerRotationLeft.y,
-        // );
-        // this.p.rotate(this.bodyLeft.getAngle());
-        // this.p.rect(this.w / 2, 0, this.w, this.h);
-        // this.p.pop();
-
-        // this.p.push();
-        // this.p.fill('#00f');
-        // this.p.translate(
-        //     (1 / PX2M) * this.centerRotationRight.x,
-        //     (1 / PX2M) * this.centerRotationRight.y,
-        // );
-        // this.p.rotate(this.bodyRight.getAngle());
-        // this.p.rect(-this.w / 2, 0, this.w, this.h);
-        // this.p.pop();
-    }
-
-    rotateLeft() {
-        // sets motor speed in radians/second
-        this.jointLeft.setMotorSpeed(-20.0);
-    }
-
-    resetLeft() {
-        // reset angle on arrow keys release
-        this.jointLeft.setMotorSpeed(20.0);
-    }
-
-    rotateRight() {
-        this.jointRight.setMotorSpeed(20.0);
-    }
-
-    resetRight() {
-        this.jointRight.setMotorSpeed(-20.0);
-    }
-}
 
 class Poly extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, key, points, isDynamic, isFixed) {
-        super(scene, x, y, key);
+    constructor(scene, x, y, key, points, isDynamic, isFixed, scale, label) {
+        super(scene, x, y);
 
         const rnd =
             Math.random().toString(36).substring(2, 15) +
             Math.random().toString(36).substring(2, 15);
-        console.log(points);
+        // console.log(points);
         const poly = new Polygon(points);
         const bbox = poly.aabb();
 
         const width = bbox.w;
         const height = bbox.h;
-        const assetsDPR = window.devicePixelRatio;
+        // const assetsDPR = window.devicePixelRatio;
+        // this.setScale(0.2);
         // this.setScale(assetsDPR / 10, assetsDPR / 10);
 
         const graphics = scene.add.graphics();
@@ -959,7 +693,11 @@ class Poly extends Phaser.GameObjects.Sprite {
         graphics.generateTexture(rnd, width, height);
         graphics.destroy();
 
-        // this.setTexture(rnd);
+        if (key != "") {
+            this.setTexture(key);
+        }
+        this.displayWidth = width * (scale + 0.05);
+        this.displayHeight = height * (scale + 0.05);
         this.scene = scene;
         this.isDynamic = isDynamic;
         this.isFixed = isFixed;
@@ -978,13 +716,20 @@ class Poly extends Phaser.GameObjects.Sprite {
         points.forEach((p) => {
             vertices.push(
                 new planck.Vec2(
-                    (p[0] - width / 2) / scene.scaleFactor,
-                    (p[1] - height / 2) / scene.scaleFactor
+                    ((p[0] - width / 2) / scene.scaleFactor) * scale,
+                    ((p[1] - height / 2) / scene.scaleFactor) * scale
                 )
             );
         });
 
-        this.b.createFixture(planck.Polygon(vertices, points.length));
+        // console.log(vertices);
+        // const init = img => {
+        this.b.createFixture(planck.Polygon(vertices, points.length), {
+            friction: 1,
+            restitution: 0.5,
+            density: 1,
+            userData: label
+        });
         this.b.setPosition(
             planck.Vec2(x / scene.scaleFactor, y / scene.scaleFactor)
         );
@@ -993,6 +738,266 @@ class Poly extends Phaser.GameObjects.Sprite {
             center: planck.Vec2(),
             I: this.isFixed ? 0 : 1
         });
+
+        // console.log(vertices);
+        // console.log(points.length);
+        // console.log(this.b.m_fixtureList.m_shape.m_vertices);
+
+        //     this.b.render = {
+        //         stroke: 'tomato',
+        //         custom: (ctx, pos, size) => {
+        //             ctx.drawImage(img, pos.x, pos.y, size, size)
+        //             return true // optional
+        //         }
+        //     }
+
+        // }
+
+        // const img = new Image()
+        // img.src = "./asset/img/toggle_left.png"
+        // img.onload = () => {
+        //     init(img)
+        // }
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        let p = this.b.getPosition();
+        this.x = p.x * this.scene.scaleFactor;
+        this.y = p.y * this.scene.scaleFactor;
+        this.rotation = this.b.getAngle();
+    }
+}
+
+class ChainShape extends Phaser.GameObjects.Sprite {
+    constructor(scene, x, y, key, points, isDynamic, isFixed, scale, label) {
+        super(scene, x, y);
+        let pon = [{
+            "x": 175,
+            "y": 2024
+        }, {
+            "x": 199,
+            "y": 1989
+        }, {
+            "x": 217,
+            "y": 1957
+        }, {
+            "x": 237,
+            "y": 1913
+        }, {
+            "x": 248,
+            "y": 1881
+        }, {
+            "x": 258,
+            "y": 1840
+        }, {
+            "x": 264,
+            "y": 1800
+        }, {
+            "x": 267,
+            "y": 1759
+        }, {
+            "x": 267,
+            "y": 88
+        }, {
+            "x": 266.70050048828125,
+            "y": 2.648834228515625
+        }, {
+            "x": 227,
+            "y": 1
+        }, {
+            "x": 226,
+            "y": 995
+        }, {
+            "x": 224,
+            "y": 1030
+        }, {
+            "x": 214,
+            "y": 1051
+        }, {
+            "x": 203,
+            "y": 1067
+        }, {
+            "x": 186,
+            "y": 1084
+        }, {
+            "x": 169,
+            "y": 1096
+        }, {
+            "x": 149,
+            "y": 1105
+        }, {
+            "x": 123,
+            "y": 1111
+        }, {
+            "x": 99,
+            "y": 1112
+        }, {
+            "x": 57,
+            "y": 1106
+        }, {
+            "x": 197,
+            "y": 1374
+        }, {
+            "x": 242,
+            "y": 1469
+        }, {
+            "x": 205,
+            "y": 1496
+        }, {
+            "x": 182,
+            "y": 1508
+        }, {
+            "x": 88,
+            "y": 1374
+        }, {
+            "x": 76,
+            "y": 1362
+        }, {
+            "x": 71,
+            "y": 1364
+        }, {
+            "x": 70,
+            "y": 1370
+        }, {
+            "x": 160,
+            "y": 1499
+        }, {
+            "x": 175,
+            "y": 1525
+        }, {
+            "x": 196,
+            "y": 1592
+        }, {
+            "x": 207,
+            "y": 1639
+        }, {
+            "x": 212,
+            "y": 1671
+        }, {
+            "x": 213,
+            "y": 1703
+        }, {
+            "x": 210,
+            "y": 1725
+        }, {
+            "x": 204,
+            "y": 1744
+        }, {
+            "x": 193,
+            "y": 1763
+        }, {
+            "x": 180,
+            "y": 1777
+        }, {
+            "x": 148,
+            "y": 1802
+        }, {
+            "x": 131,
+            "y": 1810
+        }, {
+            "x": 116,
+            "y": 1791
+        }, {
+            "x": 108,
+            "y": 1788
+        }, {
+            "x": 79,
+            "y": 1812
+        }, {
+            "x": 72,
+            "y": 1813
+        }, {
+            "x": 45,
+            "y": 1781
+        }, {
+            "x": 39,
+            "y": 1780
+        }, {
+            "x": 16,
+            "y": 1797
+        }, {
+            "x": 3,
+            "y": 1813
+        }, {
+            "x": 118,
+            "y": 1955
+        }]
+
+        const rnd =
+            Math.random().toString(36).substring(2, 15) +
+            Math.random().toString(36).substring(2, 15);
+        // console.log(points);
+        const poly = new Polygon(points);
+        const bbox = poly.aabb();
+
+        const width = bbox.w;
+        const height = bbox.h;
+        // const assetsDPR = window.devicePixelRatio;
+        this.scale = scale;
+        // this.setScale(0.2);
+        // this.setScale(assetsDPR / 10, assetsDPR / 10);
+
+        const graphics = scene.add.graphics();
+        graphics.fillStyle(0x333333, 1);
+        graphics.beginPath();
+        graphics.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i += 1) {
+            graphics.lineTo(points[i].x, points[i].y);
+        }
+        graphics.lineTo(points[0].x, points[0].y);
+        graphics.closePath();
+        graphics.fill();
+        graphics.generateTexture(rnd, width, height);
+        graphics.destroy();
+        // if (key != "") {
+        //     this.setTexture(key);
+        // }
+        this.setTexture(key);
+        this.displayWidth = width * (scale + 0.025);
+        this.displayHeight = height * (scale + 0.025);
+        this.scene = scene;
+        this.isDynamic = isDynamic;
+        this.isFixed = isFixed;
+        this.scene.add.existing(this);
+
+        this.setPosition(x, y);
+        this.x = x;
+        this.y = y;
+
+        this.b = scene.world.createBody();
+        if (this.isDynamic) {
+            this.b.setDynamic();
+        }
+
+        const vertices = [];
+        points.forEach((p) => {
+            vertices.push(
+                new planck.Vec2(
+                    ((p.x - width / 2) / scene.scaleFactor) * scale,
+                    -((p.y - height / 2) / scene.scaleFactor) * scale
+                )
+            );
+        });
+
+        this.b.createFixture(planck.Chain(vertices, points.length), {
+            friction: 1,
+            restitution: 0.5,
+            density: 1,
+            userData: label
+        });
+        this.b.setPosition(
+            planck.Vec2(x / scene.scaleFactor, y / scene.scaleFactor)
+        );
+        this.b.setMassData({
+            mass: 1,
+            center: planck.Vec2(),
+            I: this.isFixed ? 0 : 1
+        });
+
+
+        // console.log(vertices);
+        // console.log(this.b.m_fixtureList.m_shape.m_vertices);
     }
 
     preUpdate(time, delta) {
