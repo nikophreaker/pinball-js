@@ -36,6 +36,12 @@ const subSteps = 3;
 const subDelta = delta / subSteps;
 var matterTimeStep = 16.666;
 
+//static variable
+var OBSTACLE = 0xFFFF;
+
+// The boxes don't collide with triangles (except if both are small).
+var OBSTACLE_GROUP = -1;
+
 window.onload = function () {
     let gameConfig = {
         type: Phaser.CANVAS,
@@ -246,16 +252,17 @@ class PlayGame extends Phaser.Scene {
         this.shapes = this.cache.json.get('shapes');
 
         this.add.image(this.halfWidth - (3 * dpr), this.halfHeight + (11 * dpr), 'bgPinball', null, {
-                isStatic: true,
-                isSensor: true,
-            })
+            isStatic: true,
+            isSensor: true,
+        })
             .setScale(0.25 * dpr);
 
         this.createBall();
         this.createWall();
         this.createPaddle();
-        this.createControlKey();
         this.createContactEvents();
+        this.createSpring();
+        this.createControlKey();
 
         // const runner = new Runner(ww, {
         //     fps: 60,
@@ -270,31 +277,44 @@ class PlayGame extends Phaser.Scene {
         let ww = this.world;
         // planck.testbed(function (testbed) {
         //     var world = ww;
-        //     testbed.width = 20.5;
-        //     testbed.height = 5;
-        //     testbed.x = 10.2;
-        //     testbed.y = -20;
+        //     testbed.width = 10.25 * dpr;
+        //     testbed.height = 2.5 * dpr;
+        //     testbed.x = 5.1 * dpr;
+        //     testbed.y = -10 * dpr;
         //     // console.log(testbed);
         //     return world;
         // });
-
     }
 
     createWall() {
-        this.topWall = new Edge(this, 0, this.gameHeight - (2 * dpr), this.gameWidth, this.gameHeight - (2 * dpr), false, "topWall");
-        this.bottomWall = new Edge(this, this.halfWidth - (150 * dpr), 0, this.halfWidth + (150 * dpr), 0, false, "bottomWall");
-        this.leftWall = new Edge(this, this.halfWidth - (150 * dpr), 0, this.halfWidth - (150 * dpr), this.gameHeight, false, "leftWall");
-        this.rightWall = new Edge(this, this.halfWidth + (150 * dpr), 0, this.halfWidth + (150 * dpr), this.gameHeight, false, "rightWall");
+        this.topWall = new Edge(this, 0, this.gameHeight, this.gameWidth, this.gameHeight, false, "topWall");
+        this.bottomWall = new Edge(this, 0, 0, this.gameWidth, 0, false, "bottomWall");
+        this.leftWall = new Edge(this, 0, 0, 0, this.gameHeight, false, "leftWall");
+        this.rightWall = new Edge(this, this.gameWidth, 0, this.gameWidth, this.gameHeight, false, "rightWall");
 
         const {
             points: rightInnerWallPoints
         } = getPoints(this.shapes, "wall4");
         // this.rightInnerWall = new Poly(this, this.gameWidth - (50 * dpr), this.halfHeight + (100 * dpr), "wall3", rightInnerWallPoints, false, true, 0.45);
-        this.tests = new ChainShape(this, this.halfWidth, (75 * dpr), "dome", this.shapes.dome2.fixtures[0].vertices, false, true, 0.6, "dome");
+        this.tests = new ChainShape(this, this.halfWidth - (10 * dpr), (75 * dpr), "dome", this.shapes.dome2.fixtures[0].vertices, false, true, 0.5, "dome");
         this.tests = new ChainShape(this, this.halfWidth + (92 * dpr), this.halfHeight + (57 * dpr), "wall1", this.shapes.wall4.fixtures[0].vertices, false, true, 0.5, "wall1");
         this.tests = new ChainShape(this, (25 * dpr), this.halfHeight + (65 * dpr), "wall2", this.shapes.wall5.fixtures[0].vertices, false, true, 0.5, "wall2");
+    }
 
-        this.trigger = new Rectangle(this, this.halfWidth + (134 * dpr), this.halfHeight + (260 * dpr), "trigger", (10 * dpr), (5 * dpr), true, false);
+    createSpring() {
+        // this.springdot = new Rectangle(this, this.halfWidth + (138 * dpr), this.halfHeight + (310 * dpr), "trigger", (10 * dpr), (5 * dpr), false, false);
+        this.springdot = new Rectangle(this, this.halfWidth + (138 * dpr), this.halfHeight + (300 * dpr), "trigger", (10 * dpr), (5 * dpr), false, false);
+        this.trigger = new Rectangle(this, this.halfWidth + (138 * dpr), this.halfHeight + (300 * dpr), "trigger", (10 * dpr), (5 * dpr), true, false);
+        var worldAxis = planck.Vec2(0, -1);
+        this.triggerSpring = this.world.createJoint(planck.PrismaticJoint({
+            lowerTranslation: -10,
+            upperTranslation: 0,
+            enableLimit: true,
+            maxMotorForce: -500,
+            motorSpeed: 100,
+            enableMotor: true
+        }, this.trigger.b, this.springdot.b, this.trigger.b.getWorldCenter(), worldAxis));
+
     }
 
     createPaddle() {
@@ -306,8 +326,8 @@ class PlayGame extends Phaser.Scene {
             points: toggleRightPoints
         } = getPoints(this.shapes, "toggle_right");
 
-        this.circle2 = new Circle(this, this.halfWidth - (55.5 * dpr), this.halfHeight + (235 * dpr), "", 12, false, false);
-        this.circle3 = new Circle(this, this.halfWidth + (55.5 * dpr), this.halfHeight + (235 * dpr), "", 12, false, false);
+        this.circle2 = new Circle(this, this.halfWidth - (55.5 * dpr), this.halfHeight + (235 * dpr), "", (6 * dpr), false, false);
+        this.circle3 = new Circle(this, this.halfWidth + (55.5 * dpr), this.halfHeight + (235 * dpr), "", (6 * dpr), false, false);
         this.flipper = new Poly(this, this.halfWidth - (35.5 * dpr), this.halfHeight + (245 * dpr), "toggleLeft", toggleLeftPoints, true, false, 0.45, "leftPaddle");
         this.flipper2 = new Poly(this, this.halfWidth + (35.5 * dpr), this.halfHeight + (245 * dpr), "toggleRight", toggleRightPoints, true, false, 0.45, "rightPaddle");
         this.paddleWall1 = new ChainShape(this, this.halfWidth - (84 * dpr), this.halfHeight + (186 * dpr), "leftC", this.shapes.paddlewall1.fixtures[0].vertices, false, true, 0.45, "leftC");
@@ -318,7 +338,7 @@ class PlayGame extends Phaser.Scene {
             motorSpeed: 0.0,
             maxMotorTorque: 2000,
             enableLimit: true,
-            lowerAngle: -0.4 * Math.PI, // -90 degrees
+            lowerAngle: -0.5 * Math.PI, // -90 degrees
             upperAngle: 0 * Math.PI, // 45 degrees
             // lowerAngle: -20 * (Math.PI / 180.0),
             // upperAngle: 25 * (Math.PI / 180.0),
@@ -330,18 +350,25 @@ class PlayGame extends Phaser.Scene {
             maxMotorTorque: 2000,
             enableLimit: true,
             lowerAngle: 0 * Math.PI,
-            upperAngle: 0.4 * Math.PI
+            upperAngle: 0.5 * Math.PI
         }, this.circle3.b, this.flipper2.b, this.circle3.b.m_sweep.c));
     }
 
     createControlKey() {
 
         // keyboard paddle events
+        let triggerPer = this.triggerSpring;
         this.btnSpace = this.input.keyboard.addKey("SPACE");
         this.btnSpace.on("down", function () {
+            // triggerPer.setMotorSpeed(10);
+            triggerPer.setMaxMotorForce(5);
+            // triggerPer.enableMotor(false);
             console.log("SPACE BTN DOWN");
         }, this);
         this.btnSpace.on("up", function () {
+            // triggerPer.setMaxMotorForce(-100);
+            triggerPer.setMaxMotorForce(-500);
+            // triggerPer.enableMotor(true);
             console.log("SPACE BTN UP");
         }, this);
 
@@ -383,16 +410,19 @@ class PlayGame extends Phaser.Scene {
 
     createBall() {
         // create ball
-        this.circle = new Circle(this, this.halfWidth, this.halfHeight, "ball", 24.5, true, false, "ballss");
+        this.circle = new Circle(this, this.halfWidth + (138 * dpr), this.halfHeight, "ball", 7 * dpr, true, false, "ballss");
     }
 
     update() {
         // advance the simulation by 1/20 seconds
-        this.world.step(1 / 30);
+        this.world.step(1 / 16, 10, 8);
+        // console.log(this.game.loop.delta);
+        // console.log(this.game.loop.actualFps);
 
         // crearForces  method should be added at the end on each step
         this.world.clearForces();
     }
+
 
 }
 
@@ -402,11 +432,11 @@ class Circle extends Phaser.GameObjects.Sprite {
 
         const rnd =
             Math.random()
-            .toString(36)
-            .substring(2, 15) +
+                .toString(36)
+                .substring(2, 15) +
             Math.random()
-            .toString(36)
-            .substring(2, 15);
+                .toString(36)
+                .substring(2, 15);
 
         const graphics = scene.add.graphics();
         graphics.fillStyle(0x333333, 1);
@@ -432,7 +462,8 @@ class Circle extends Phaser.GameObjects.Sprite {
 
         // Body
         this.b = scene.world.createBody({
-            userData: label
+            userData: label,
+            bullet: true
         });
         if (this.isDynamic) {
             this.b.setDynamic();
@@ -443,15 +474,17 @@ class Circle extends Phaser.GameObjects.Sprite {
             friction: 0.1,
             restitution: 0.5,
             density: 1,
-            userData: label
+            userData: label,
+            // filterGroupIndex: SMALL_GROUP,
         });
+        console.log(this.b);
 
         this.b.setPosition(
             planck.Vec2(this.x / 30, this.y / 30)
         );
 
         this.b.setMassData({
-            mass: 1,
+            mass: 0.5,
             center: planck.Vec2(),
             I: 1
         });
@@ -502,11 +535,11 @@ class Rectangle extends Phaser.GameObjects.Sprite {
 
         const rnd =
             Math.random()
-            .toString(36)
-            .substring(2, 15) +
+                .toString(36)
+                .substring(2, 15) +
             Math.random()
-            .toString(36)
-            .substring(2, 15);
+                .toString(36)
+                .substring(2, 15);
 
         const graphics = scene.add.graphics();
         graphics.fillStyle(0x333333, 1);
@@ -538,9 +571,10 @@ class Rectangle extends Phaser.GameObjects.Sprite {
         }
         // const init = img => {
         this.b.createFixture(planck.Box(width / 30, height / 30), {
-            friction: 0.1,
+            friction: 1,
             restitution: 0.5,
-            density: 1
+            density: 1,
+            filterGroupIndex: OBSTACLE_GROUP
         });
 
         this.b.setPosition(
@@ -548,7 +582,7 @@ class Rectangle extends Phaser.GameObjects.Sprite {
         );
 
         this.b.setMassData({
-            mass: 1,
+            mass: 3,
             center: planck.Vec2(),
             I: 1
         });
@@ -596,11 +630,11 @@ class Edge extends Phaser.GameObjects.Sprite {
                 planck.Vec2(this.x / 30, this.y / 30),
                 planck.Vec2(this.x2 / 30, this.y2 / 30)
             ), {
-                friction: 1,
-                restitution: 0.5,
-                density: 1,
-                userData: label
-            }
+            friction: 1,
+            restitution: 0.5,
+            density: 1,
+            userData: label
+        }
         );
 
         this.b.setMassData({
@@ -670,34 +704,38 @@ class Poly extends Phaser.GameObjects.Sprite {
         const rnd =
             Math.random().toString(36).substring(2, 15) +
             Math.random().toString(36).substring(2, 15);
-        // console.log(points);
-        const poly = new Polygon(points);
+
+        var arrTemp = [];
+        points.map(function (e) {
+            arrTemp.push([e[0] / 2 * dpr * scale, e[1] / 2 * dpr * scale]);
+            return arrTemp;
+        });
+        const poly = new Polygon(arrTemp);
         const bbox = poly.aabb();
 
         const width = bbox.w;
         const height = bbox.h;
         // const assetsDPR = window.devicePixelRatio;
-        // this.setScale(0.2);
+        this.scale = scale;
         // this.setScale(assetsDPR / 10, assetsDPR / 10);
 
-        const graphics = scene.add.graphics();
-        graphics.fillStyle(0x333333, 1);
-        graphics.beginPath();
-        graphics.moveTo(points[0][0], points[0][1]);
-        for (let i = 1; i < points.length; i += 1) {
-            graphics.lineTo(points[i][0], points[i][1]);
-        }
-        graphics.lineTo(points[0][0], points[0][1]);
-        graphics.closePath();
-        graphics.fill();
-        graphics.generateTexture(rnd, width, height);
-        graphics.destroy();
+        // const graphics = scene.add.graphics();
+        // graphics.fillStyle(0x333333, 1);
+        // graphics.beginPath();
+        // graphics.moveTo(points[0][0], points[0][1]);
+        // for (let i = 1; i < points.length; i += 1) {
+        //     graphics.lineTo(points[i][0], points[i][1]);
+        // }
+        // graphics.lineTo(points[0][0], points[0][1]);
+        // graphics.closePath();
+        // graphics.fill();
+        // graphics.generateTexture(rnd, width, height);
+        // graphics.destroy();
 
         if (key != "") {
             this.setTexture(key);
+            // console.log();
         }
-        this.displayWidth = width * (scale + 0.05);
-        this.displayHeight = height * (scale + 0.05);
         this.scene = scene;
         this.isDynamic = isDynamic;
         this.isFixed = isFixed;
@@ -713,31 +751,33 @@ class Poly extends Phaser.GameObjects.Sprite {
         }
 
         const vertices = [];
-        points.forEach((p) => {
+        arrTemp.forEach((p) => {
             vertices.push(
                 new planck.Vec2(
-                    ((p[0] - width / 2) / scene.scaleFactor) * scale,
-                    ((p[1] - height / 2) / scene.scaleFactor) * scale
+                    ((p[0] - width / 2) / scene.scaleFactor),
+                    ((p[1] - height / 2) / scene.scaleFactor)
                 )
             );
         });
 
         // console.log(vertices);
         // const init = img => {
-        this.b.createFixture(planck.Polygon(vertices, points.length), {
+        this.b.createFixture(planck.Polygon(vertices, arrTemp.length), {
             friction: 1,
             restitution: 0.5,
             density: 1,
-            userData: label
+            userData: label,
+            filterGroupIndex: OBSTACLE_GROUP,
         });
         this.b.setPosition(
             planck.Vec2(x / scene.scaleFactor, y / scene.scaleFactor)
         );
         this.b.setMassData({
-            mass: 1,
+            mass: 3,
             center: planck.Vec2(),
             I: this.isFixed ? 0 : 1
         });
+        // this.setDisplayOrigin(this.b.getWorldCenter().x, this.b.getWorldCenter().y);
 
         // console.log(vertices);
         // console.log(points.length);
@@ -763,6 +803,7 @@ class Poly extends Phaser.GameObjects.Sprite {
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
         let p = this.b.getPosition();
+        // console.log(p);
         this.x = p.x * this.scene.scaleFactor;
         this.y = p.y * this.scene.scaleFactor;
         this.rotation = this.b.getAngle();
@@ -771,181 +812,38 @@ class Poly extends Phaser.GameObjects.Sprite {
 
 class ChainShape extends Phaser.GameObjects.Sprite {
     constructor(scene, x, y, key, points, isDynamic, isFixed, scale, label) {
-        super(scene, x, y);
-        let pon = [{
-            "x": 175,
-            "y": 2024
-        }, {
-            "x": 199,
-            "y": 1989
-        }, {
-            "x": 217,
-            "y": 1957
-        }, {
-            "x": 237,
-            "y": 1913
-        }, {
-            "x": 248,
-            "y": 1881
-        }, {
-            "x": 258,
-            "y": 1840
-        }, {
-            "x": 264,
-            "y": 1800
-        }, {
-            "x": 267,
-            "y": 1759
-        }, {
-            "x": 267,
-            "y": 88
-        }, {
-            "x": 266.70050048828125,
-            "y": 2.648834228515625
-        }, {
-            "x": 227,
-            "y": 1
-        }, {
-            "x": 226,
-            "y": 995
-        }, {
-            "x": 224,
-            "y": 1030
-        }, {
-            "x": 214,
-            "y": 1051
-        }, {
-            "x": 203,
-            "y": 1067
-        }, {
-            "x": 186,
-            "y": 1084
-        }, {
-            "x": 169,
-            "y": 1096
-        }, {
-            "x": 149,
-            "y": 1105
-        }, {
-            "x": 123,
-            "y": 1111
-        }, {
-            "x": 99,
-            "y": 1112
-        }, {
-            "x": 57,
-            "y": 1106
-        }, {
-            "x": 197,
-            "y": 1374
-        }, {
-            "x": 242,
-            "y": 1469
-        }, {
-            "x": 205,
-            "y": 1496
-        }, {
-            "x": 182,
-            "y": 1508
-        }, {
-            "x": 88,
-            "y": 1374
-        }, {
-            "x": 76,
-            "y": 1362
-        }, {
-            "x": 71,
-            "y": 1364
-        }, {
-            "x": 70,
-            "y": 1370
-        }, {
-            "x": 160,
-            "y": 1499
-        }, {
-            "x": 175,
-            "y": 1525
-        }, {
-            "x": 196,
-            "y": 1592
-        }, {
-            "x": 207,
-            "y": 1639
-        }, {
-            "x": 212,
-            "y": 1671
-        }, {
-            "x": 213,
-            "y": 1703
-        }, {
-            "x": 210,
-            "y": 1725
-        }, {
-            "x": 204,
-            "y": 1744
-        }, {
-            "x": 193,
-            "y": 1763
-        }, {
-            "x": 180,
-            "y": 1777
-        }, {
-            "x": 148,
-            "y": 1802
-        }, {
-            "x": 131,
-            "y": 1810
-        }, {
-            "x": 116,
-            "y": 1791
-        }, {
-            "x": 108,
-            "y": 1788
-        }, {
-            "x": 79,
-            "y": 1812
-        }, {
-            "x": 72,
-            "y": 1813
-        }, {
-            "x": 45,
-            "y": 1781
-        }, {
-            "x": 39,
-            "y": 1780
-        }, {
-            "x": 16,
-            "y": 1797
-        }, {
-            "x": 3,
-            "y": 1813
-        }, {
-            "x": 118,
-            "y": 1955
-        }]
+        super(scene, x, y, key);
 
         const rnd =
             Math.random().toString(36).substring(2, 15) +
             Math.random().toString(36).substring(2, 15);
         // console.log(points);
-        const poly = new Polygon(points);
+        var arrTemp = [];
+        points.map(function (e) {
+            arrTemp.push({ x: e.x / 2 * dpr * scale, y: e.y / 2 * dpr * scale });
+            return arrTemp;
+        });
+
+        const poly = new Polygon(arrTemp);
         const bbox = poly.aabb();
 
         const width = bbox.w;
         const height = bbox.h;
+        // this.setDisplayOrigin(bbox.x, bbox.y);
         // const assetsDPR = window.devicePixelRatio;
-        this.scale = scale;
-        // this.setScale(0.2);
+        // this.scale = scale;
+        // this.setScale(0.8);
         // this.setScale(assetsDPR / 10, assetsDPR / 10);
 
+        // this.setScale(scale);
         const graphics = scene.add.graphics();
         graphics.fillStyle(0x333333, 1);
         graphics.beginPath();
-        graphics.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length; i += 1) {
-            graphics.lineTo(points[i].x, points[i].y);
+        graphics.moveTo(arrTemp[0].x, arrTemp[0].y);
+        for (let i = 1; i < arrTemp.length; i += 1) {
+            graphics.lineTo(arrTemp[i].x, arrTemp[i].y);
         }
-        graphics.lineTo(points[0].x, points[0].y);
+        graphics.lineTo(arrTemp[0].x, arrTemp[0].y);
         graphics.closePath();
         graphics.fill();
         graphics.generateTexture(rnd, width, height);
@@ -953,9 +851,13 @@ class ChainShape extends Phaser.GameObjects.Sprite {
         // if (key != "") {
         //     this.setTexture(key);
         // }
-        this.setTexture(key);
-        this.displayWidth = width * (scale + 0.025);
-        this.displayHeight = height * (scale + 0.025);
+        // this.setTexture(rnd);
+        this.displayWidth = width;
+        this.displayHeight = height;
+
+        // this.displayOriginY = 0.5;
+        // this.setDisplayOrigin(((width / 2) / scene.scaleFactor) * scale, ((height / 2) / scene.scaleFactor) * scale);
+        // this.displayOriginY = ((height / 2) / scene.scaleFactor) * scale;
         this.scene = scene;
         this.isDynamic = isDynamic;
         this.isFixed = isFixed;
@@ -971,33 +873,46 @@ class ChainShape extends Phaser.GameObjects.Sprite {
         }
 
         const vertices = [];
-        points.forEach((p) => {
+        arrTemp.forEach((p) => {
             vertices.push(
                 new planck.Vec2(
-                    ((p.x - width / 2) / scene.scaleFactor) * scale,
-                    -((p.y - height / 2) / scene.scaleFactor) * scale
+                    ((p.x - width / 2) / scene.scaleFactor),
+                    -((p.y - height / 2) / scene.scaleFactor)
                 )
             );
         });
 
-        this.b.createFixture(planck.Chain(vertices, points.length), {
+        this.b.createFixture(planck.Chain(vertices, arrTemp.length), {
             friction: 1,
             restitution: 0.5,
             density: 1,
-            userData: label
+            userData: label,
+            filterGroupIndex: OBSTACLE_GROUP,
         });
         this.b.setPosition(
             planck.Vec2(x / scene.scaleFactor, y / scene.scaleFactor)
         );
         this.b.setMassData({
-            mass: 1,
+            mass: 0,
             center: planck.Vec2(),
             I: this.isFixed ? 0 : 1
         });
 
 
-        // console.log(vertices);
-        // console.log(this.b.m_fixtureList.m_shape.m_vertices);
+        // let p = this.b.getPosition();
+        // this.x = p.x * this.scene.scaleFactor;
+        // this.y = p.y * this.scene.scaleFactor;
+        // console.log(width);
+        // console.log(this.width);
+        // console.log(width * (scale));
+        // console.log(`originbody x ${this.x}`);
+        // console.log(`origin x ${this.displayOriginX}`);
+        // this.setDisplayOrigin(550, 50);
+        // this.displayOriginX = this.displayOriginX - 20;
+        // this.displayOriginY = this.displayOriginY + 5;
+        // console.log(`${label}: ${this.displayOriginY}`);
+        // this.displayWidth = (width * (scale)) - scene.scaleFactor;
+        // this.displayHeight = (height * (scale)) + scene.scaleFactor;
     }
 
     preUpdate(time, delta) {
