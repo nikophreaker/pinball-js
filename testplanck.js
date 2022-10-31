@@ -35,12 +35,14 @@ const delta = 1000 / 60;
 const subSteps = 3;
 const subDelta = delta / subSteps;
 var matterTimeStep = 16.666;
+var btnSpaceHold = false;
 
 //static variable
 var OBSTACLE = 0xFFFF;
 
 // The boxes don't collide with triangles (except if both are small).
 var OBSTACLE_GROUP = -1;
+var BALL_GROUP = -2;
 
 window.onload = function () {
     let gameConfig = {
@@ -105,7 +107,7 @@ class PlayGame extends Phaser.Scene {
     init() {
         // Init World
         this.world = planck.World(planck.Vec2(0, 3));
-
+        currentScore = 0;
         //init scale window
         dpr = window.devicePixelRatio;
 
@@ -217,6 +219,9 @@ class PlayGame extends Phaser.Scene {
         this.load.image("bumper500", "bumper_500.png");
         this.load.image("appronsLeft", "approns_left.png");
         this.load.image("appronsRight", "approns_right.png");
+        this.load.image("closestopperLeft", "closestopperLeft.png");
+        this.load.image("closestopperRight", "closestopperRight.png");
+        this.load.image("stopper", "stopper.png");
         this.load.image("bgPinball", "bg_pinball.png");
         this.load.image("fieldBumper", "field_bumper.png");
         this.load.json("shapes", "shapes.json");
@@ -257,9 +262,11 @@ class PlayGame extends Phaser.Scene {
         })
             .setScale(0.25 * dpr);
 
-        this.createBall();
         this.createWall();
         this.createPaddle();
+        this.createBumper();
+        this.createStopper();
+        this.createBall();
         this.createContactEvents();
         this.createSpring();
         this.createControlKey();
@@ -272,18 +279,7 @@ class PlayGame extends Phaser.Scene {
         // runner.start(() => {
         //     renderer.renderWorld()
         // });
-        let gw = this.gameWidth;
-        let gh = this.gameHeight
-        let ww = this.world;
-        // planck.testbed(function (testbed) {
-        //     var world = ww;
-        //     testbed.width = 10.25 * dpr;
-        //     testbed.height = 2.5 * dpr;
-        //     testbed.x = 5.1 * dpr;
-        //     testbed.y = -10 * dpr;
-        //     // console.log(testbed);
-        //     return world;
-        // });
+        // this.testtestbed(); // for debug purpose
     }
 
     createWall() {
@@ -296,18 +292,47 @@ class PlayGame extends Phaser.Scene {
             points: rightInnerWallPoints
         } = getPoints(this.shapes, "wall4");
         // this.rightInnerWall = new Poly(this, this.gameWidth - (50 * dpr), this.halfHeight + (100 * dpr), "wall3", rightInnerWallPoints, false, true, 0.45);
-        this.tests = new ChainShape(this, this.halfWidth - (10 * dpr), (75 * dpr), "dome", this.shapes.dome2.fixtures[0].vertices, false, true, 0.5, "dome");
-        this.tests = new ChainShape(this, this.halfWidth + (92 * dpr), this.halfHeight + (57 * dpr), "wall1", this.shapes.wall4.fixtures[0].vertices, false, true, 0.5, "wall1");
-        this.tests = new ChainShape(this, (25 * dpr), this.halfHeight + (65 * dpr), "wall2", this.shapes.wall5.fixtures[0].vertices, false, true, 0.5, "wall2");
+        new ChainShape(this, this.halfWidth, (75 * dpr), "dome", this.shapes.dome2.fixtures[0].vertices, false, true, 0.5, "dome");
+        new ChainShape(this, this.halfWidth + (105 * dpr), this.halfHeight + (57 * dpr), "wall1", this.shapes.wall4.fixtures[0].vertices, false, true, 0.5, "wall1");
+        new ChainShape(this, (25 * dpr), this.halfHeight + (65 * dpr), "wall2", this.shapes.wall5.fixtures[0].vertices, false, true, 0.5, "wall2");
+        new ChainShape(this, (75 * dpr), this.halfHeight - (125 * dpr), "wall3", this.shapes.wall6.fixtures[0].vertices, false, true, 0.5, "wall6");
+
+        //top wall
+        new ChainShape(this, this.halfWidth - (15 * dpr), (145 * dpr), "leftD", this.shapes.leftD.fixtures[0].vertices, false, true, 0.5, "leftD", OBSTACLE_GROUP);
+        new ChainShape(this, this.halfWidth + (15 * dpr), (145 * dpr), "rightD", this.shapes.rightD.fixtures[0].vertices, false, true, 0.5, "rightD", OBSTACLE_GROUP);
+
+        // bottom wall
+        new ChainShape(this, (70 * dpr), this.halfHeight + (275 * dpr), "appronsLeft", this.shapes.appronsLeft.fixtures[0].vertices, false, true, 0.5, "appronsLeft", OBSTACLE_GROUP);
+        new ChainShape(this, this.halfWidth + (75 * dpr), this.halfHeight + (275 * dpr), "appronsRight", this.shapes.appronsRight.fixtures[0].vertices, false, true, 0.5, "appronsRight", OBSTACLE_GROUP);
+        new OtherBumper(this, this.halfWidth - (20 * dpr), this.halfHeight + (125 * dpr), "leftA", this.shapes.leftA.fixtures[0].vertices, false, true, 0.5, "leftA", OBSTACLE_GROUP, 0.5);
+        new OtherBumper(this, this.halfWidth + (15 * dpr), this.halfHeight + (125 * dpr), "rightA", this.shapes.rightA.fixtures[0].vertices, false, true, 0.5, "rightA", OBSTACLE_GROUP, 0.5);
+        new OtherBumper(this, this.halfWidth - (75 * dpr), this.halfHeight + (165 * dpr), "leftB", this.shapes.leftB.fixtures[0].vertices, false, true, 0.5, "leftB", OBSTACLE_GROUP, 1);
+        new OtherBumper(this, this.halfWidth + (65 * dpr), this.halfHeight + (165 * dpr), "rightB", this.shapes.rightB.fixtures[0].vertices, false, true, 0.5, "rightB", OBSTACLE_GROUP, 1);
+    }
+
+    createStopper() {
+        this.stopperLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (302 * dpr), "stopper", this.shapes.stopper.fixtures[0].vertices, false, true, 0.7, "stopperLeft", OBSTACLE_GROUP);
+        this.stopperRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (302 * dpr), "stopper", this.shapes.stopper.fixtures[0].vertices, false, true, 0.7, "stopperRight", OBSTACLE_GROUP);
+    }
+
+    createLeftStop() {
+        this.closeLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (230 * dpr), "closestopperLeft", this.shapes.closestopperLeft.fixtures[0].vertices, false, true, 0.7, "closestopperLeft", OBSTACLE_GROUP);
+    }
+
+    createRigthStop() {
+        this.closeRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (230 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, 0.7, "closestopperRight", OBSTACLE_GROUP);
     }
 
     createSpring() {
         // this.springdot = new Rectangle(this, this.halfWidth + (138 * dpr), this.halfHeight + (310 * dpr), "trigger", (10 * dpr), (5 * dpr), false, false);
-        this.springdot = new Rectangle(this, this.halfWidth + (138 * dpr), this.halfHeight + (300 * dpr), "trigger", (10 * dpr), (5 * dpr), false, false);
-        this.trigger = new Rectangle(this, this.halfWidth + (138 * dpr), this.halfHeight + (300 * dpr), "trigger", (10 * dpr), (5 * dpr), true, false);
+        this.springdot = new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (240 * dpr), "trigger", (10 * dpr), (5 * dpr), 0.55, false, false);
+        this.trigger = new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (240 * dpr), "trigger", (10 * dpr), (5 * dpr), 0.55, true, false);
+        this.spring = this.add.sprite(this.halfWidth + (145 * dpr), this.halfHeight + (240 * dpr), "pegas");
+        this.spring.setScale(0.55);
+        this.spring.setOrigin(0.5, 1);
         var worldAxis = planck.Vec2(0, -1);
         this.triggerSpring = this.world.createJoint(planck.PrismaticJoint({
-            lowerTranslation: -10,
+            lowerTranslation: -6.4,
             upperTranslation: 0,
             enableLimit: true,
             maxMotorForce: -500,
@@ -326,12 +351,12 @@ class PlayGame extends Phaser.Scene {
             points: toggleRightPoints
         } = getPoints(this.shapes, "toggle_right");
 
-        this.circle2 = new Circle(this, this.halfWidth - (55.5 * dpr), this.halfHeight + (235 * dpr), "", (6 * dpr), false, false);
-        this.circle3 = new Circle(this, this.halfWidth + (55.5 * dpr), this.halfHeight + (235 * dpr), "", (6 * dpr), false, false);
-        this.flipper = new Poly(this, this.halfWidth - (35.5 * dpr), this.halfHeight + (245 * dpr), "toggleLeft", toggleLeftPoints, true, false, 0.45, "leftPaddle");
-        this.flipper2 = new Poly(this, this.halfWidth + (35.5 * dpr), this.halfHeight + (245 * dpr), "toggleRight", toggleRightPoints, true, false, 0.45, "rightPaddle");
-        this.paddleWall1 = new ChainShape(this, this.halfWidth - (84 * dpr), this.halfHeight + (186 * dpr), "leftC", this.shapes.paddlewall1.fixtures[0].vertices, false, true, 0.45, "leftC");
-        this.paddleWall1 = new ChainShape(this, this.halfWidth + (80 * dpr), this.halfHeight + (188 * dpr), "rightC", this.shapes.paddlewall2.fixtures[0].vertices, false, true, 0.45, "rightC");
+        this.paddleWall1 = new ChainShape(this, this.halfWidth - (91 * dpr), this.halfHeight + (186 * dpr), "leftC", this.shapes.paddlewall1.fixtures[0].vertices, false, true, 0.45, "leftC", OBSTACLE_GROUP);
+        this.paddleWall1 = new ChainShape(this, this.halfWidth + (80 * dpr), this.halfHeight + (188 * dpr), "rightC", this.shapes.paddlewall2.fixtures[0].vertices, false, true, 0.45, "rightC", OBSTACLE_GROUP);
+        this.circle2 = new Circle(this, this.halfWidth - (63 * dpr), this.halfHeight + (233.5 * dpr), "", (6 * dpr), false, false, OBSTACLE_GROUP);
+        this.circle3 = new Circle(this, this.halfWidth + (51 * dpr), this.halfHeight + (233.5 * dpr), "", (6 * dpr), false, false, OBSTACLE_GROUP);
+        this.flipper = new Poly(this, this.halfWidth - (43 * dpr), this.halfHeight + (243.5 * dpr), "toggleLeft", toggleLeftPoints, true, false, 0.5, "leftPaddle", OBSTACLE_GROUP);
+        this.flipper2 = new Poly(this, this.halfWidth + (32.5 * dpr), this.halfHeight + (243.5 * dpr), "toggleRight", toggleRightPoints, true, false, 0.5, "rightPaddle", OBSTACLE_GROUP);
 
         this.jointLeftPaddle = this.world.createJoint(planck.RevoluteJoint({
             enableMotor: true,
@@ -354,22 +379,31 @@ class PlayGame extends Phaser.Scene {
         }, this.circle3.b, this.flipper2.b, this.circle3.b.m_sweep.c));
     }
 
-    createControlKey() {
+    createBumper() {
+        this.bumperField = new Circle(this, this.halfWidth + (3 * dpr), this.halfHeight - (66 * dpr), "fieldBumper", (75 * dpr), false, true, "bumperField", BALL_GROUP);
+        this.bumper100 = new Bumper(this, this.halfWidth + (45 * dpr), this.halfHeight - (65 * dpr), "bumper100", (25 * dpr), false, true, "bumper100");
+        this.bumper200 = new Bumper(this, this.halfWidth - (25 * dpr), this.halfHeight - (95 * dpr), "bumper200", (22 * dpr), false, true, "bumper200");
+        this.bumper500 = new Bumper(this, this.halfWidth - (28 * dpr), this.halfHeight - (30 * dpr), "bumper500", (20 * dpr), false, true, "bumper500");
+    }
 
+    createControlKey() {
         // keyboard paddle events
         let triggerPer = this.triggerSpring;
         this.btnSpace = this.input.keyboard.addKey("SPACE");
         this.btnSpace.on("down", function () {
+            btnSpaceHold = true;
+            triggerPer.setMaxMotorForce(-5);
             // triggerPer.setMotorSpeed(10);
-            triggerPer.setMaxMotorForce(5);
             // triggerPer.enableMotor(false);
-            console.log("SPACE BTN DOWN");
+            // console.log("SPACE BTN DOWN");
         }, this);
         this.btnSpace.on("up", function () {
+            btnSpaceHold = false;
+            // triggerPer.setMotorSpeed(0);
             // triggerPer.setMaxMotorForce(-100);
-            triggerPer.setMaxMotorForce(-500);
+            triggerPer.setMaxMotorForce(-200);
             // triggerPer.enableMotor(true);
-            console.log("SPACE BTN UP");
+            // console.log("SPACE BTN UP");
         }, this);
 
         let leftPaddle = this.jointLeftPaddle;
@@ -394,7 +428,11 @@ class PlayGame extends Phaser.Scene {
 
     createContactEvents() {
         let ww = this;
-        let ballsss = this.circle.b;
+        let ball = this.circle;
+        let stopperLeft = this.stopperLeft;
+        let stopperRight = this.stopperRight;
+        let closeLeft = this.closeLeft;
+        let closeRight = this.closeRight;
         // console.log(this.circle.b);
         ww.world.on("begin-contact", function (contact) {
             let labelBodyA = contact.m_fixtureA.m_userData;
@@ -403,17 +441,61 @@ class PlayGame extends Phaser.Scene {
                 ww.circle.destroy();
             }
             if (labelBodyA == "wall4" && labelBodyB == "ballss") {
-                console.log(labelBodyA);
+                // console.log(labelBodyA);
+            }
+            if (labelBodyA == "bumper100" && labelBodyB == "ballss") {
+                currentScore += 100;
+                // console.log(labelBodyA);
+            }
+            if (labelBodyA == "bumper200" && labelBodyB == "ballss") {
+                currentScore += 200;
+                // console.log(labelBodyA);
+            }
+            if (labelBodyA == "bumper500" && labelBodyB == "ballss") {
+                currentScore += 500;
+                // console.log(labelBodyA);
+            }
+            if (labelBodyA == "stopperLeft" && labelBodyB == "ballss") {
+                ball.stopper();
+                setTimeout(function () {
+                    ball.launchBall();
+                }, 2500);
+                setTimeout(function () {
+                    ww.createLeftStop();
+                }, 3000);
+            }
+            if (labelBodyA == "stopperRight" && labelBodyB == "ballss") {
+                ball.stopper();
+                setTimeout(function () {
+                    ball.launchBall();
+                }, 2500);
+                setTimeout(function () {
+                    ww.createRigthStop();
+                }, 3000);
             }
         });
     }
 
     createBall() {
         // create ball
-        this.circle = new Circle(this, this.halfWidth + (138 * dpr), this.halfHeight, "ball", 7 * dpr, true, false, "ballss");
+        this.circle = new Circle(this, this.halfWidth + (138 * dpr), this.halfHeight, "ball", 7 * dpr, true, false, "ballss", BALL_GROUP);
     }
 
     update() {
+
+        let spring = this.spring;
+        if (btnSpaceHold) {
+            if (spring.scaleY > 0.013) {
+                if (spring.scaleY < 0.45) {
+                    spring.scaleY -= 0.015;
+                } else {
+                    spring.scaleY -= 0.005;
+                }
+            }
+        } else {
+            spring.scaleY = 0.55;
+        }
+
         // advance the simulation by 1/20 seconds
         this.world.step(1 / 16, 10, 8);
         // console.log(this.game.loop.delta);
@@ -423,11 +505,147 @@ class PlayGame extends Phaser.Scene {
         this.world.clearForces();
     }
 
+    testtestbed() {
+        let gw = this.gameWidth;
+        let gh = this.gameHeight;
+        let ww = this.world;
+        planck.testbed(function (testbed) {
+            var world = ww;
+            testbed.width = 10.25 * dpr;
+            testbed.height = 2.5 * dpr;
+            testbed.x = 5.1 * dpr;
+            testbed.y = -10 * dpr;
+            // console.log(testbed);
+            return world;
+        });
+    }
 
 }
 
 class Circle extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, key, radius, isDynamic, isFixed, label) {
+    constructor(scene, x, y, key, radius, isDynamic, isFixed, label, groupIndex) {
+        super(scene, x, y);
+
+        const rnd =
+            Math.random()
+                .toString(36)
+                .substring(2, 15) +
+            Math.random()
+                .toString(36)
+                .substring(2, 15);
+
+        const graphics = scene.add.graphics();
+        graphics.fillStyle(0x333333, 1);
+        graphics.fillCircle(radius, radius, radius);
+
+        graphics.generateTexture(rnd, radius * 2, radius * 2);
+        graphics.destroy();
+
+        if (key != "") {
+            this.setTexture(key);
+        }
+        this.displayWidth = radius * 2;
+        this.displayHeight = radius * 2;
+        this.scene = scene;
+        this.isDynamic = isDynamic;
+        this.isFixed = isFixed;
+        this.scene.add.existing(this);
+
+        this.radius = radius;
+
+        this.x = x;
+        this.y = y;
+
+        // Body
+        this.b = scene.world.createBody({
+            userData: label,
+            bullet: true
+        });
+        if (this.isDynamic) {
+            this.b.setDynamic();
+        }
+        // console.log(scene.world);
+        // const init = img => {
+        this.b.createFixture(planck.Circle(radius / 30), {
+            friction: 0,
+            restitution: 0.5,
+            density: 1,
+            userData: label,
+            filterGroupIndex: groupIndex,
+        });
+        // console.log(this.b);
+
+        this.b.setPosition(
+            planck.Vec2(this.x / 30, this.y / 30)
+        );
+
+        this.b.setMassData({
+            mass: 0.5,
+            center: planck.Vec2(),
+            I: 1
+        });
+
+        //     this.b.render = {
+        //         stroke: 'tomato',
+        //         custom: (ctx, pos, size) => {
+        //             ctx.drawImage(img, pos.x, pos.y, size, size)
+        //             return true // optional
+        //         }
+        //     }
+
+        // }
+
+        // const img = new Image()
+        // img.src = "./asset/img/ball.png" //"https://www.pngall.com/wp-content/uploads/5/Sports-Ball-Transparent.png"
+        // img.onload = () => {
+        //     init(img)
+        // }
+    }
+
+    stopper() {
+        let ball = this.b;
+        // do not change world immediately
+        setTimeout(function () {
+            ball.setAwake(false);
+        }, 1);
+        console.log(ball.isSleepingAllowed());
+    }
+
+    launchBall() {
+        let ball = this.b;
+        // do not change world immediately
+        setTimeout(function () {
+            ball.setAwake(true);
+            // ball.setTransform(planck.Vec2(0, 100), 0);
+            ball.applyLinearImpulse(planck.Vec2(0, -50), planck.Vec2(0, 0), true);
+        }, 1);
+    }
+
+    destroy() {
+        let world = this.scene.world;
+        let ball = this.b;
+        // do not change world immediately
+        setTimeout(function () {
+            world.destroyBody(ball);
+        }, 1);
+        this.removeFromDisplayList();
+        // this.removedFromScene();
+        // this.scene.world.destroyBody(this.b);
+        // console.log(this.scene.world.destroyBody());
+        // this.b.m_destroyed = true
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        let p = this.b.getPosition();
+        this.x = p.x * 30;
+        this.y = p.y * 30;
+        this.rotation = this.b.getAngle();
+    }
+}
+
+class Bumper extends Phaser.GameObjects.Sprite {
+    constructor(scene, x, y, key, radius, isDynamic, isFixed, label, groupIndex) {
         super(scene, x, y);
 
         const rnd =
@@ -472,12 +690,12 @@ class Circle extends Phaser.GameObjects.Sprite {
         // const init = img => {
         this.b.createFixture(planck.Circle(radius / 30), {
             friction: 0.1,
-            restitution: 0.5,
+            restitution: 1,
             density: 1,
             userData: label,
-            // filterGroupIndex: SMALL_GROUP,
+            filterGroupIndex: groupIndex,
         });
-        console.log(this.b);
+        // console.log(this.b);
 
         this.b.setPosition(
             planck.Vec2(this.x / 30, this.y / 30)
@@ -530,7 +748,7 @@ class Circle extends Phaser.GameObjects.Sprite {
 }
 
 class Rectangle extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, key, width, height, isDynamic, isFixed) {
+    constructor(scene, x, y, key, width, height, scale, isDynamic, isFixed, groupIndex) {
         super(scene, x, y);
 
         const rnd =
@@ -553,6 +771,7 @@ class Rectangle extends Phaser.GameObjects.Sprite {
         }
         this.displayWidth = width * 2;
         this.displayHeight = height * 2;
+        this.scale = scale;
         this.scene = scene;
         this.isDynamic = isDynamic;
         this.isFixed = isFixed;
@@ -570,11 +789,11 @@ class Rectangle extends Phaser.GameObjects.Sprite {
             this.b.setDynamic();
         }
         // const init = img => {
-        this.b.createFixture(planck.Box(width / 30, height / 30), {
+        this.b.createFixture(planck.Box(width * scale / 30, height * scale / 30), {
             friction: 1,
             restitution: 0.5,
             density: 1,
-            filterGroupIndex: OBSTACLE_GROUP
+            filterGroupIndex: groupIndex,
         });
 
         this.b.setPosition(
@@ -598,7 +817,7 @@ class Rectangle extends Phaser.GameObjects.Sprite {
 }
 
 class Edge extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, x2, y2, isDynamic, label) {
+    constructor(scene, x, y, x2, y2, isDynamic, label, groupIndex) {
         super(scene, x, y);
 
         // We don't generate a texture because the bounds logic is annoying
@@ -633,7 +852,8 @@ class Edge extends Phaser.GameObjects.Sprite {
             friction: 1,
             restitution: 0.5,
             density: 1,
-            userData: label
+            userData: label,
+            filterGroupIndex: groupIndex,
         }
         );
 
@@ -698,7 +918,7 @@ class Edge extends Phaser.GameObjects.Sprite {
 }
 
 class Poly extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, key, points, isDynamic, isFixed, scale, label) {
+    constructor(scene, x, y, key, points, isDynamic, isFixed, scale, label, groupIndex) {
         super(scene, x, y);
 
         const rnd =
@@ -707,7 +927,7 @@ class Poly extends Phaser.GameObjects.Sprite {
 
         var arrTemp = [];
         points.map(function (e) {
-            arrTemp.push([e[0] / 2 * dpr * scale, e[1] / 2 * dpr * scale]);
+            arrTemp.push({ x: e[0] / 2 * dpr * scale, y: e[1] / 2 * dpr * scale });
             return arrTemp;
         });
         const poly = new Polygon(arrTemp);
@@ -715,8 +935,14 @@ class Poly extends Phaser.GameObjects.Sprite {
 
         const width = bbox.w;
         const height = bbox.h;
+
+        // console.log(`width : ${this.width}`);
+        // console.log(`width2 : ${width}`);
+        // console.log(`height : ${this.height}`);
+        // console.log(`height2 : ${height}`);
         // const assetsDPR = window.devicePixelRatio;
         this.scale = scale;
+        // this.setDisplaySize(width, height);
         // this.setScale(assetsDPR / 10, assetsDPR / 10);
 
         // const graphics = scene.add.graphics();
@@ -754,8 +980,8 @@ class Poly extends Phaser.GameObjects.Sprite {
         arrTemp.forEach((p) => {
             vertices.push(
                 new planck.Vec2(
-                    ((p[0] - width / 2) / scene.scaleFactor),
-                    ((p[1] - height / 2) / scene.scaleFactor)
+                    ((p.x - width / 1.9) / scene.scaleFactor),
+                    ((p.y - height / 2) / scene.scaleFactor)
                 )
             );
         });
@@ -763,11 +989,11 @@ class Poly extends Phaser.GameObjects.Sprite {
         // console.log(vertices);
         // const init = img => {
         this.b.createFixture(planck.Polygon(vertices, arrTemp.length), {
-            friction: 1,
+            friction: 0.5,
             restitution: 0.5,
             density: 1,
             userData: label,
-            filterGroupIndex: OBSTACLE_GROUP,
+            filterGroupIndex: groupIndex,
         });
         this.b.setPosition(
             planck.Vec2(x / scene.scaleFactor, y / scene.scaleFactor)
@@ -811,7 +1037,7 @@ class Poly extends Phaser.GameObjects.Sprite {
 }
 
 class ChainShape extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, key, points, isDynamic, isFixed, scale, label) {
+    constructor(scene, x, y, key, points, isDynamic, isFixed, scale, label, groupIndex) {
         super(scene, x, y, key);
 
         const rnd =
@@ -852,8 +1078,9 @@ class ChainShape extends Phaser.GameObjects.Sprite {
         //     this.setTexture(key);
         // }
         // this.setTexture(rnd);
-        this.displayWidth = width;
+        this.displayWidth = width / (scale + 0.4);
         this.displayHeight = height;
+        this.scale = scale
 
         // this.displayOriginY = 0.5;
         // this.setDisplayOrigin(((width / 2) / scene.scaleFactor) * scale, ((height / 2) / scene.scaleFactor) * scale);
@@ -863,9 +1090,9 @@ class ChainShape extends Phaser.GameObjects.Sprite {
         this.isFixed = isFixed;
         this.scene.add.existing(this);
 
-        this.setPosition(x, y);
-        this.x = x;
-        this.y = y;
+        // this.setPosition(x, y);
+        // this.x = x;
+        // this.y = y;
 
         this.b = scene.world.createBody();
         if (this.isDynamic) {
@@ -876,18 +1103,18 @@ class ChainShape extends Phaser.GameObjects.Sprite {
         arrTemp.forEach((p) => {
             vertices.push(
                 new planck.Vec2(
-                    ((p.x - width / 2) / scene.scaleFactor),
+                    ((p.x - width / 1.9) / scene.scaleFactor),
                     -((p.y - height / 2) / scene.scaleFactor)
                 )
             );
         });
 
         this.b.createFixture(planck.Chain(vertices, arrTemp.length), {
-            friction: 1,
+            friction: 0.5,
             restitution: 0.5,
             density: 1,
             userData: label,
-            filterGroupIndex: OBSTACLE_GROUP,
+            filterGroupIndex: groupIndex,
         });
         this.b.setPosition(
             planck.Vec2(x / scene.scaleFactor, y / scene.scaleFactor)
@@ -898,7 +1125,7 @@ class ChainShape extends Phaser.GameObjects.Sprite {
             I: this.isFixed ? 0 : 1
         });
 
-
+        console.log(this.b);
         // let p = this.b.getPosition();
         // this.x = p.x * this.scene.scaleFactor;
         // this.y = p.y * this.scene.scaleFactor;
@@ -917,7 +1144,122 @@ class ChainShape extends Phaser.GameObjects.Sprite {
 
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
-        let p = this.b.getPosition();
+        let p = this.b.m_sweep.c;
+        this.x = p.x * this.scene.scaleFactor;
+        this.y = p.y * this.scene.scaleFactor;
+        this.rotation = this.b.getAngle();
+    }
+}
+
+class OtherBumper extends Phaser.GameObjects.Sprite {
+    constructor(scene, x, y, key, points, isDynamic, isFixed, scale, label, groupIndex, restitution) {
+        super(scene, x, y, key);
+
+        const rnd =
+            Math.random().toString(36).substring(2, 15) +
+            Math.random().toString(36).substring(2, 15);
+        // console.log(points);
+        var arrTemp = [];
+        points.map(function (e) {
+            arrTemp.push({ x: e.x / 2 * dpr * scale, y: e.y / 2 * dpr * scale });
+            return arrTemp;
+        });
+
+        const poly = new Polygon(arrTemp);
+        const bbox = poly.aabb();
+
+        const width = bbox.w;
+        const height = bbox.h;
+        // this.setDisplayOrigin(bbox.x, bbox.y);
+        // const assetsDPR = window.devicePixelRatio;
+        // this.scale = scale;
+        // this.setScale(0.8);
+        // this.setScale(assetsDPR / 10, assetsDPR / 10);
+
+        // this.setScale(scale);
+        const graphics = scene.add.graphics();
+        graphics.fillStyle(0x333333, 1);
+        graphics.beginPath();
+        graphics.moveTo(arrTemp[0].x, arrTemp[0].y);
+        for (let i = 1; i < arrTemp.length; i += 1) {
+            graphics.lineTo(arrTemp[i].x, arrTemp[i].y);
+        }
+        graphics.lineTo(arrTemp[0].x, arrTemp[0].y);
+        graphics.closePath();
+        graphics.fill();
+        graphics.generateTexture(rnd, width, height);
+        graphics.destroy();
+        // if (key != "") {
+        //     this.setTexture(key);
+        // }
+        // this.setTexture(rnd);
+        this.displayWidth = width / (scale + 0.4);
+        this.displayHeight = height;
+        this.scale = scale
+
+        // this.displayOriginY = 0.5;
+        // this.setDisplayOrigin(((width / 2) / scene.scaleFactor) * scale, ((height / 2) / scene.scaleFactor) * scale);
+        // this.displayOriginY = ((height / 2) / scene.scaleFactor) * scale;
+        this.scene = scene;
+        this.isDynamic = isDynamic;
+        this.isFixed = isFixed;
+        this.scene.add.existing(this);
+
+        // this.setPosition(x, y);
+        // this.x = x;
+        // this.y = y;
+
+        this.b = scene.world.createBody();
+        if (this.isDynamic) {
+            this.b.setDynamic();
+        }
+
+        const vertices = [];
+        arrTemp.forEach((p) => {
+            vertices.push(
+                new planck.Vec2(
+                    ((p.x - width / 1.9) / scene.scaleFactor),
+                    -((p.y - height / 2) / scene.scaleFactor)
+                )
+            );
+        });
+
+        this.b.createFixture(planck.Chain(vertices, arrTemp.length), {
+            friction: 0.5,
+            restitution: restitution,
+            density: 1,
+            userData: label,
+            filterGroupIndex: groupIndex,
+        });
+        this.b.setPosition(
+            planck.Vec2(x / scene.scaleFactor, y / scene.scaleFactor)
+        );
+        this.b.setMassData({
+            mass: 0,
+            center: planck.Vec2(),
+            I: this.isFixed ? 0 : 1
+        });
+
+        // console.log(this.b);
+        // let p = this.b.getPosition();
+        // this.x = p.x * this.scene.scaleFactor;
+        // this.y = p.y * this.scene.scaleFactor;
+        // console.log(width);
+        // console.log(this.width);
+        // console.log(width * (scale));
+        // console.log(`originbody x ${this.x}`);
+        // console.log(`origin x ${this.displayOriginX}`);
+        // this.setDisplayOrigin(550, 50);
+        // this.displayOriginX = this.displayOriginX - 20;
+        // this.displayOriginY = this.displayOriginY + 5;
+        // console.log(`${label}: ${this.displayOriginY}`);
+        // this.displayWidth = (width * (scale)) - scene.scaleFactor;
+        // this.displayHeight = (height * (scale)) + scene.scaleFactor;
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        let p = this.b.m_sweep.c;
         this.x = p.x * this.scene.scaleFactor;
         this.y = p.y * this.scene.scaleFactor;
         this.rotation = this.b.getAngle();
