@@ -67,16 +67,16 @@ window.onload = function () {
                     timestamp: 0,
                     timeScale: 1
                 },
-                debug: true
+                debug: false
             },
         },
-        plugins: {
-            scene: [{
-                plugin: PhaserMatterCollisionPlugin.default,
-                key: 'matterCollision',
-                mapping: 'matterCollision'
-            }]
-        },
+        // plugins: {
+        //     scene: [{
+        //         plugin: PhaserMatterCollisionPlugin.default,
+        //         key: 'matterCollision',
+        //         mapping: 'matterCollision'
+        //     }]
+        // },
         scene: [PlayGame]
     };
     game = new Phaser.Game(gameConfig);
@@ -184,6 +184,8 @@ class PlayGame extends Phaser.Scene {
         this.load.image("rightC", "right_c.png");
         this.load.image("leftD", "left_d.png");
         this.load.image("rightD", "right_d.png");
+        this.load.image("toggleLeftstraight", "toggle_left(straight).png");
+        this.load.image("toggleRightstraight", "toggle_right(straight).png");
         this.load.image("toggleLeft", "toggle_left.png");
         this.load.image("toggleRight", "toggle_right.png");
         this.load.image("bumper100", "bumper_100.png");
@@ -273,6 +275,7 @@ class PlayGame extends Phaser.Scene {
         return this.matter.bodies.fromVertices(x, y, vertices, {
             label: label,
             isStatic: true,
+            restitution: 0,
             render: {
                 fillStyle: COLOR.OUTER,
 
@@ -357,20 +360,20 @@ class PlayGame extends Phaser.Scene {
         this.bgStart.displayHeight = this.gameHeight;
 
         this.matter.add.image((this.gameWidth / 2) - (3 * dpr), (this.gameHeight / 2) + (11 * dpr), 'bgPinball', null, {
-                isStatic: true,
-                isSensor: true,
-            })
+            isStatic: true,
+            isSensor: true,
+        })
             .setScale(0.25 * dpr);
 
         fieldBumper = this.matter.add.image((this.gameWidth / 2) + (3 * dpr), (this.gameHeight / 2) - (66 * dpr), 'fieldBumper', null, {
-                isStatic: true,
-                isSensor: true,
-            })
+            isStatic: true,
+            isSensor: true,
+        })
             .setScale(0.25 * dpr);
         fieldBumper2 = this.matter.add.image((this.gameWidth / 2) + (3 * dpr), (this.gameHeight / 2) - (66 * dpr), 'fieldBumper', null, {
-                isStatic: true,
-                isSensor: true,
-            })
+            isStatic: true,
+            isSensor: true,
+        })
             .setScale(0.25 * dpr);
         fieldBumper.alpha = 0.65;
         fieldBumper2.alpha = 1;
@@ -424,61 +427,62 @@ class PlayGame extends Phaser.Scene {
         // let domePath = this.path((this.gameWidth / 2), (this.gameHeight / 2) - (272 * dpr), domeTest);
         var shapes = this.cache.json.get('shapes');
         let domePath = this.matter.add.sprite((this.gameWidth / 2) + (5 * dpr), (this.gameHeight / 2) - (265 * dpr), "dome", null, {
-                label: "dome",
-                shape: shapes.dome,
-                friction: 0,
-                isStatic: true,
-                chamfer: {
-                    radius: 10
-                }
-            })
+            label: "dome",
+            shape: shapes.dome,
+            friction: 0,
+            isStatic: true,
+            chamfer: {
+                radius: 10
+            }
+        })
             .setScale(0.24 * dpr, 0.225 * dpr);
         let wallPath = this.matter.add.sprite((this.gameWidth / 2) + (115 * dpr), (this.gameHeight / 2) + (8 * dpr), "wall1", null, {
-                label: "wall1",
-                shape: shapes.wall1,
-                friction: 0,
-                isStatic: true,
-                chamfer: {
-                    radius: 20
-                }
-            })
+            label: "wall1",
+            shape: shapes.wall1,
+            friction: 1,
+            restitution: 1,
+            isStatic: true,
+            chamfer: {
+                radius: 20
+            }
+        })
             .setScale(0.24 * dpr, 0.25 * dpr);
         // this.boundaryBottom = this.boundary(this.gameWidth / 2, this.gameHeight, this.gameWidth, 20 * dpr, "bottom");
         let wall2 = '0 0 100 426 90 442 85 458 74.2 475 74 475 60 495 50 525 42 545 38 565 28 595 28 600 28 990 0 990'
         this.matter.add.image((this.gameWidth / 2) - (118 * dpr), (this.gameHeight / 2) + (70 * dpr), 'wall2', null, {
-                label: "wall2",
-                isStatic: true,
-                isSensor: true,
-                chamfer: {
-                    radius: 10
-                }
-            })
+            label: "wall2",
+            isStatic: true,
+            isSensor: true,
+            chamfer: {
+                radius: 10
+            }
+        })
             .setScale(0.25 * dpr);
         this.matter.add.sprite((this.gameWidth / 2) - (90 * dpr), (this.gameHeight / 2) - (135 * dpr), 'wall3', null, {
-                label: "wall3",
-                shape: shapes.wall3,
-                isStatic: true,
-                isSensor: true,
-                chamfer: {
-                    radius: 10
-                }
-            })
+            label: "wall3",
+            shape: shapes.wall3,
+            isStatic: true,
+            isSensor: true,
+            chamfer: {
+                radius: 10
+            }
+        })
             .setScale(0.22 * dpr);
         this.matter.add.image((this.gameWidth / 2) - (78 * dpr), (this.gameHeight / 2) + (275 * dpr), 'appronsLeft', null, {
-                isStatic: true,
-                isSensor: true,
-                chamfer: {
-                    radius: 10
-                }
-            })
+            isStatic: true,
+            isSensor: true,
+            chamfer: {
+                radius: 10
+            }
+        })
             .setScale(0.25 * dpr);
         this.matter.add.image((this.gameWidth / 2) + (75 * dpr), (this.gameHeight / 2) + (275 * dpr), 'appronsRight', null, {
-                isStatic: true,
-                isSensor: true,
-                chamfer: {
-                    radius: 10
-                }
-            })
+            isStatic: true,
+            isSensor: true,
+            chamfer: {
+                radius: 10
+            }
+        })
             .setScale(0.25 * dpr);
         this.matter.world.add([
 
@@ -542,71 +546,71 @@ class PlayGame extends Phaser.Scene {
         ]);
 
         let leftA = this.matter.add.image((this.gameWidth / 2) - (10 * dpr), (this.gameHeight / 2) + (123 * dpr), 'leftA', null, {
-                isStatic: true,
-                isSensor: true
-            })
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.23 * dpr);
 
         let rightA = this.matter.add.image((this.gameWidth / 2) + (20 * dpr), (this.gameHeight / 2) + (123 * dpr), 'rightA', null, {
-                isStatic: true,
-                isSensor: true
-            })
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.23 * dpr);
 
         let leftB = this.matter.add.image((this.gameWidth / 2) - (70 * dpr), (this.gameHeight / 2) + (165 * dpr), 'leftB', null, {
-                label: "leftB",
-                isStatic: true,
-                isSensor: true
-            })
+            label: "leftB",
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.23 * dpr);
 
         let rightB = this.matter.add.image((this.gameWidth / 2) + (65 * dpr), (this.gameHeight / 2) + (165 * dpr), 'rightB', null, {
-                label: "rightB",
-                isStatic: true,
-                isSensor: true
-            })
+            label: "rightB",
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.23 * dpr);
 
         let leftC = this.matter.add.image((this.gameWidth / 2) - (80 * dpr), (this.gameHeight / 2) + (190 * dpr), 'leftC', null, {
-                isStatic: true,
-                isSensor: true
-            })
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.25 * dpr);
 
         let rightC = this.matter.add.image((this.gameWidth / 2) + (78 * dpr), (this.gameHeight / 2) + (187 * dpr), 'rightC', null, {
-                isStatic: true,
-                isSensor: true
-            })
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.25 * dpr);
 
         let leftD = this.matter.add.image((this.gameWidth / 2) - (15 * dpr), 155 * dpr, 'leftD', null, {
-                isStatic: true,
-                isSensor: true
-            })
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.25 * dpr);
 
         let rightD = this.matter.add.image((this.gameWidth / 2) + (15 * dpr), 155 * dpr, 'rightD', null, {
-                isStatic: true,
-                isSensor: true
-            })
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.25 * dpr);
 
         let bumper100 = this.matter.add.image((this.gameWidth / 2) + (42 * dpr), (this.gameHeight / 2) - (66 * dpr), 'bumper100', null, {
-                isStatic: true,
-                isSensor: true
-            })
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.24 * dpr);
 
         let bumper200 = this.matter.add.image((this.gameWidth / 2) - (20 * dpr), (this.gameHeight / 2) - (100 * dpr), 'bumper200', null, {
-                isStatic: true,
-                isSensor: true
-            })
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.23 * dpr);
 
         let bumper500 = this.matter.add.image((this.gameWidth / 2) - (24 * dpr), (this.gameHeight / 2) - (36 * dpr), 'bumper500', null, {
-                isStatic: true,
-                isSensor: true
-            })
+            isStatic: true,
+            isSensor: true
+        })
             .setScale(0.24 * dpr);
     }
 
@@ -651,7 +655,7 @@ class PlayGame extends Phaser.Scene {
             }
         });
 
-        let paddleLeftsprite = this.matter.add.image(0, 0, 'toggleLeft', null);
+        let paddleLeftsprite = this.matter.add.image(0, 0, 'toggleLeftstraight', null);
         paddleLeftsprite.setScale(0.225 * dpr);
         paddleLeftsprite.setExistingBody(paddleLeft.comp, false)
             .setPosition(paddleLeft.comp.position.x, paddleLeft.comp.position.y)
@@ -701,7 +705,7 @@ class PlayGame extends Phaser.Scene {
             }
         });
 
-        let paddleRightsprite = this.matter.add.sprite(0, 0, 'toggleRight', null);
+        let paddleRightsprite = this.matter.add.sprite(0, 0, 'toggleRightstraight', null);
         paddleRightsprite.setScale(0.225 * dpr);
         paddleRightsprite.setExistingBody(paddleRight.comp, false)
             .setPosition(paddleRight.comp.position.x, paddleRight.comp.position.y)
@@ -726,7 +730,7 @@ class PlayGame extends Phaser.Scene {
 
     createPinball() {
         // x/y are set to when pinball is launched
-        pinball = this.matter.bodies.circle(0, 0, 12, {
+        pinball = this.matter.bodies.circle(0, 0, 9 * dpr, {
             label: 'pinball',
             collisionFilter: {
                 group: stopperGroup
@@ -737,7 +741,9 @@ class PlayGame extends Phaser.Scene {
             }
         });
         this.matter.world.add(pinball);
-
+        let ballSprite = this.matter.add.sprite(this.gameWidth / 3, this.gameHeight / 2, "ball", null);
+        ballSprite.setExistingBody(pinball);
+        ballSprite.setScale(0.5);
         // pinball = this.matter.add.sprite(this.gameWidth / 3, this.gameHeight / 2, "ball", null, {
         //     label: "pinball",
         //     shape: {
