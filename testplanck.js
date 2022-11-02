@@ -31,6 +31,8 @@ let engine, world, render, pinball, stopperGroup;
 let leftPaddle, leftUpStopper, leftDownStopper, isLeftPaddleUp;
 let rightPaddle, rightUpStopper, rightDownStopper, isRightPaddleUp;
 let isFalling = false;
+let topLedOne = false, topLedTwo = false, topLedThree = false;
+let joint = null;
 const delta = 1000 / 60;
 const subSteps = 3;
 const subDelta = delta / subSteps;
@@ -222,6 +224,14 @@ class PlayGame extends Phaser.Scene {
         this.load.image("closestopperLeft", "closestopperLeft.png");
         this.load.image("closestopperRight", "closestopperRight.png");
         this.load.image("stopper", "stopper.png");
+        this.load.image("bridge", "bridge.png");
+        this.load.image("entranceBridge", "entrance_bridge.png");
+        this.load.image("exitBridge", "exit_bridge.png");
+        this.load.image("topLedOff", "top_led_off.png");
+        this.load.image("topLedOn", "top_led_on.png");
+        this.load.image("top1", "top_1.png");
+        this.load.image("top2", "top_2.png");
+        this.load.image("top3", "top_3.png");
         this.load.image("bgPinball", "bg_pinball.png");
         this.load.image("fieldBumper", "field_bumper.png");
         this.load.json("shapes", "shapes.json");
@@ -277,9 +287,11 @@ class PlayGame extends Phaser.Scene {
 
         this.createWall();
         this.createPaddle();
+        this.createLed();
         this.createBumper();
         this.createStopper();
         this.createBall();
+        this.createBridge();
         this.createTrigger();
         this.createContactEvents();
         this.createSpring();
@@ -305,40 +317,52 @@ class PlayGame extends Phaser.Scene {
             points: rightInnerWallPoints
         } = getPoints(this.shapes, "wall4");
         // this.rightInnerWall = new Poly(this, this.gameWidth - (50 * dpr), this.halfHeight + (100 * dpr), "wall3", rightInnerWallPoints, false, true, 0.45);
-        new ChainShape(this, this.halfWidth, (75 * dpr), "dome", this.shapes.dome2.fixtures[0].vertices, false, true, 0.5, "dome");
-        new ChainShape(this, this.halfWidth + (105 * dpr), this.halfHeight + (57 * dpr), "wall1", this.shapes.wall4.fixtures[0].vertices, false, true, 0.5, "wall1");
-        new ChainShape(this, (25 * dpr), this.halfHeight + (65 * dpr), "wall2", this.shapes.wall5.fixtures[0].vertices, false, true, 0.5, "wall2");
-        new ChainShape(this, (75 * dpr), this.halfHeight - (125 * dpr), "wall3", this.shapes.wall6.fixtures[0].vertices, false, true, 0.5, "wall6");
+        new ChainShape(this, this.halfWidth, (75 * dpr), "dome", this.shapes.dome2.fixtures[0].vertices, false, true, false, 0.5, "dome");
+        this.wall1 = new ChainShape(this, this.halfWidth + (105 * dpr), this.halfHeight + (57 * dpr), "wall1", this.shapes.wall4.fixtures[0].vertices, false, true, false, 0.5, "wall1");
+        this.wall2 = new ChainShape(this, (25 * dpr), this.halfHeight + (65 * dpr), "wall2", this.shapes.wall5.fixtures[0].vertices, false, true, false, 0.5, "wall2");
+        this.wall3 = new ChainShape(this, (75 * dpr), this.halfHeight - (125 * dpr), "wall3", this.shapes.wall6.fixtures[0].vertices, false, true, false, 0.5, "wall6");
+
+        // trigger and ball paddock
+        new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (280 * dpr), "", (30 * dpr), (70 * dpr), 0.5, false, false, OBSTACLE_GROUP);
+        new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (270 * dpr), "", (30 * dpr), (35 * dpr), 0.5, false, false, OBSTACLE_GROUP);
 
         //top wall
-        new ChainShape(this, this.halfWidth - (15 * dpr), (145 * dpr), "leftD", this.shapes.leftD.fixtures[0].vertices, false, true, 0.5, "leftD", OBSTACLE_GROUP);
-        new ChainShape(this, this.halfWidth + (15 * dpr), (145 * dpr), "rightD", this.shapes.rightD.fixtures[0].vertices, false, true, 0.5, "rightD", OBSTACLE_GROUP);
+        new ChainShape(this, this.halfWidth - (15 * dpr), (155 * dpr), "leftD", this.shapes.leftD.fixtures[0].vertices, false, true, false, 0.5, "leftD", OBSTACLE_GROUP);
+        new ChainShape(this, this.halfWidth + (15 * dpr), (155 * dpr), "rightD", this.shapes.rightD.fixtures[0].vertices, false, true, false, 0.5, "rightD", OBSTACLE_GROUP);
 
         // bottom wall
-        new ChainShape(this, (70 * dpr), this.halfHeight + (275 * dpr), "appronsLeft", this.shapes.appronsLeft.fixtures[0].vertices, false, true, 0.5, "appronsLeft", OBSTACLE_GROUP);
-        new ChainShape(this, this.halfWidth + (75 * dpr), this.halfHeight + (275 * dpr), "appronsRight", this.shapes.appronsRight.fixtures[0].vertices, false, true, 0.5, "appronsRight", OBSTACLE_GROUP);
-        new OtherBumper(this, this.halfWidth - (20 * dpr), this.halfHeight + (125 * dpr), "leftA", this.shapes.leftA.fixtures[0].vertices, false, true, 0.5, "leftA", OBSTACLE_GROUP, 0);
-        new OtherBumper(this, this.halfWidth + (15 * dpr), this.halfHeight + (125 * dpr), "rightA", this.shapes.rightA.fixtures[0].vertices, false, true, 0.5, "rightA", OBSTACLE_GROUP, 0);
-        new OtherBumper(this, this.halfWidth - (70 * dpr), this.halfHeight + (165 * dpr), "leftB", this.shapes.leftB.fixtures[0].vertices, false, true, 0.5, "leftB", OBSTACLE_GROUP, 0.5);
-        new OtherBumper(this, this.halfWidth + (60 * dpr), this.halfHeight + (165 * dpr), "rightB", this.shapes.rightB.fixtures[0].vertices, false, true, 0.5, "rightB", OBSTACLE_GROUP, 0.5);
+        new ChainShape(this, (70 * dpr), this.halfHeight + (275 * dpr), "appronsLeft", this.shapes.appronsLeft.fixtures[0].vertices, false, true, false, 0.5, "appronsLeft", OBSTACLE_GROUP);
+        new ChainShape(this, this.halfWidth + (75 * dpr), this.halfHeight + (275 * dpr), "appronsRight", this.shapes.appronsRight.fixtures[0].vertices, false, true, false, 0.5, "appronsRight", OBSTACLE_GROUP);
+        new OtherBumper(this, this.halfWidth - (20 * dpr), this.halfHeight + (105 * dpr), "leftA", this.shapes.leftA.fixtures[0].vertices, false, true, 0.5, "leftA", OBSTACLE_GROUP, 0);
+        new OtherBumper(this, this.halfWidth + (15 * dpr), this.halfHeight + (105 * dpr), "rightA", this.shapes.rightA.fixtures[0].vertices, false, true, 0.5, "rightA", OBSTACLE_GROUP, 0);
+        new OtherBumper(this, this.halfWidth - (70 * dpr), this.halfHeight + (172 * dpr), "leftB", this.shapes.leftB.fixtures[0].vertices, false, true, 0.5, "leftB", OBSTACLE_GROUP, 0.7);
+        new OtherBumper(this, this.halfWidth + (60 * dpr), this.halfHeight + (172 * dpr), "rightB", this.shapes.rightB.fixtures[0].vertices, false, true, 0.5, "rightB", OBSTACLE_GROUP, 0.7);
     }
 
     createStopper() {
-        this.stopperLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (302 * dpr), "stopper", this.shapes.stopper.fixtures[0].vertices, false, true, 0.7, "stopperLeft", OBSTACLE_GROUP);
-        this.stopperRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (302 * dpr), "stopper", this.shapes.stopper.fixtures[0].vertices, false, true, 0.7, "stopperRight", OBSTACLE_GROUP);
+        this.stopperLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (302 * dpr), "stopper", this.shapes.stopper.fixtures[0].vertices, false, true, false, 0.7, "stopperLeft", OBSTACLE_GROUP);
+        this.stopperRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (302 * dpr), "stopper", this.shapes.stopper.fixtures[0].vertices, false, true, false, 0.7, "stopperRight", OBSTACLE_GROUP);
+
+        //closer
+        this.closeLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (230 * dpr), "closestopperLeft", this.shapes.closestopperLeft.fixtures[0].vertices, false, true, false, 0.7, "closestopperLeft", OBSTACLE_GROUP);
+        this.closeRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (230 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, false, 0.7, "closestopperRight", OBSTACLE_GROUP);
+        this.closeBegin = new ChainShape(this, this.halfWidth + (125 * dpr), this.halfHeight - (205 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, false, 0.7, "closeBegin", OBSTACLE_GROUP);
+        this.closeLeft.b.setActive(false);
+        this.closeRight.b.setActive(false);
+        this.closeBegin.b.setActive(false);
     }
 
-    createLeftStop() {
-        this.closeLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (230 * dpr), "closestopperLeft", this.shapes.closestopperLeft.fixtures[0].vertices, false, true, 0.7, "closestopperLeft", OBSTACLE_GROUP);
-    }
+    // createLeftStop() {
+    //     this.closeLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (230 * dpr), "closestopperLeft", this.shapes.closestopperLeft.fixtures[0].vertices, false, true, false, 0.7, "closestopperLeft", OBSTACLE_GROUP);
+    // }
 
-    createRigthStop() {
-        this.closeRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (230 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, 0.7, "closestopperRight", OBSTACLE_GROUP);
-    }
+    // createRigthStop() {
+    //     this.closeRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (230 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, false, 0.7, "closestopperRight", OBSTACLE_GROUP);
+    // }
 
-    createBeginStop() {
-        this.closeBegin = new ChainShape(this, this.halfWidth + (125 * dpr), this.halfHeight - (205 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, 0.7, "closeBegin", OBSTACLE_GROUP);
-    }
+    // createBeginStop() {
+    //     this.closeBegin = new ChainShape(this, this.halfWidth + (125 * dpr), this.halfHeight - (205 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, false, 0.7, "closeBegin", OBSTACLE_GROUP);
+    // }
 
     createSpring() {
         // this.springdot = new Rectangle(this, this.halfWidth + (138 * dpr), this.halfHeight + (310 * dpr), "trigger", (10 * dpr), (5 * dpr), false, false);
@@ -368,17 +392,17 @@ class PlayGame extends Phaser.Scene {
             points: toggleRightPoints
         } = getPoints(this.shapes, "toggle_right");
 
-        this.paddleWall1 = new ChainShape(this, this.halfWidth - (91 * dpr), this.halfHeight + (186 * dpr), "leftC", this.shapes.paddlewall1.fixtures[0].vertices, false, true, 0.45, "leftC", OBSTACLE_GROUP);
-        this.paddleWall1 = new ChainShape(this, this.halfWidth + (80 * dpr), this.halfHeight + (186 * dpr), "rightC", this.shapes.paddlewall2.fixtures[0].vertices, false, true, 0.45, "rightC", OBSTACLE_GROUP);
+        this.paddleWall1 = new ChainShape(this, this.halfWidth - (91 * dpr), this.halfHeight + (186 * dpr), "leftC", this.shapes.paddlewall1.fixtures[0].vertices, false, true, false, 0.45, "leftC", OBSTACLE_GROUP);
+        this.paddleWall1 = new ChainShape(this, this.halfWidth + (80 * dpr), this.halfHeight + (186 * dpr), "rightC", this.shapes.paddlewall2.fixtures[0].vertices, false, true, false, 0.45, "rightC", OBSTACLE_GROUP);
         this.circle2 = new Circle(this, this.halfWidth - (63 * dpr), this.halfHeight + (233.5 * dpr), "", (6 * dpr), false, false, false, OBSTACLE_GROUP);
-        this.circle3 = new Circle(this, this.halfWidth + (51 * dpr), this.halfHeight + (233.5 * dpr), "", (6 * dpr), false, false, false, OBSTACLE_GROUP);
+        this.circle3 = new Circle(this, this.halfWidth + (56 * dpr), this.halfHeight + (234 * dpr), "", (6 * dpr), false, false, false, OBSTACLE_GROUP);
         this.flipper = new Poly(this, this.halfWidth - (43 * dpr), this.halfHeight + (243.5 * dpr), "toggleLeft", toggleLeftPoints, true, false, 0.5, "leftPaddle", OBSTACLE_GROUP);
-        this.flipper2 = new Poly(this, this.halfWidth + (32.5 * dpr), this.halfHeight + (243.5 * dpr), "toggleRight", toggleRightPoints, true, false, 0.5, "rightPaddle", OBSTACLE_GROUP);
+        this.flipper2 = new Poly(this, this.halfWidth + (37.5 * dpr), this.halfHeight + (244 * dpr), "toggleRight", toggleRightPoints, true, false, 0.5, "rightPaddle", OBSTACLE_GROUP);
 
         this.jointLeftPaddle = this.world.createJoint(planck.RevoluteJoint({
             enableMotor: true,
             motorSpeed: 0.0,
-            maxMotorTorque: 200,
+            maxMotorTorque: 400,
             enableLimit: true,
             lowerAngle: -0.3 * Math.PI, // -90 degrees
             upperAngle: 0 * Math.PI, // 45 degrees
@@ -389,7 +413,7 @@ class PlayGame extends Phaser.Scene {
         this.jointRightPaddle = this.world.createJoint(planck.RevoluteJoint({
             enableMotor: true,
             motorSpeed: 0.0,
-            maxMotorTorque: 200,
+            maxMotorTorque: 400,
             enableLimit: true,
             lowerAngle: 0 * Math.PI,
             upperAngle: 0.3 * Math.PI
@@ -403,8 +427,20 @@ class PlayGame extends Phaser.Scene {
         this.bumper500 = new Bumper(this, this.halfWidth - (28 * dpr), this.halfHeight - (30 * dpr), "bumper500", (20 * dpr), false, true, "bumper500");
     }
 
+    createLed() {
+        //Top LED
+        this.topLedOne = new Circle(this, this.halfWidth - (30 * dpr), this.halfHeight - (155 * dpr), "topLedOff", (6 * dpr), false, false, true, "topLedOne");
+        this.topLedTwo = new Circle(this, this.halfWidth, this.halfHeight - (155 * dpr), "topLedOff", (6 * dpr), false, false, true, "topLedTwo");
+        this.topLedThree = new Circle(this, this.halfWidth + (30 * dpr), this.halfHeight - (155 * dpr), "topLedOff", (6 * dpr), false, false, true, "topLedThree");
+
+        // Top Info Led
+        this.topLedOneInfo = new Circle(this, this.halfWidth - (30 * dpr), this.halfHeight - (175 * dpr), "top1", (8 * dpr), false, false, true, "topLedOneInfo");
+        this.topLedTwoInfo = new Circle(this, this.halfWidth, this.halfHeight - (175 * dpr), "top2", (8 * dpr), false, false, true, "topLedTwoInfo");
+        this.topLedThreeInfo = new Circle(this, this.halfWidth + (30 * dpr), this.halfHeight - (175 * dpr), "top3", (8 * dpr), false, false, true, "topLedThreeInfo");
+    }
+
     createTrigger() {
-        this.circleTriggerClose = new Circle(this, this.halfWidth + (110 * dpr), this.halfHeight - (220 * dpr), "", 7 * dpr, false, false, true, "triggerClose");
+        this.circleTriggerClose = new Circle(this, this.halfWidth + (110 * dpr), this.halfHeight - (220 * dpr), "", (12 * dpr), false, false, true, "triggerClose");
     }
 
     createControlKey() {
@@ -445,11 +481,36 @@ class PlayGame extends Phaser.Scene {
         this.rightBtn.on("up", function () {
             rightPaddle.setMotorSpeed(-20);
         }, this);
+
+        // Testing with mouse clik for ball
+        let world = this;
+        let ball = this.ball;
+        let bodyA = this.ball.b;
+        let bodyB = this.ball.b;
+        let target = this.ball.b.getWorldCenter();
+        this.input.on('pointerdown', function (pointer) {
+
+            let dummyBody = world.world.createBody();
+            // ball.ball2Bridge(planck.Vec2(pointer.x / world.scaleFactor, pointer.y / world.scaleFactor));
+            joint = world.world.createJoint(planck.MouseJoint({
+                maxForce: 1000,
+            }, dummyBody, bodyA, planck.Vec2.clone(planck.Vec2(pointer.x / world.scaleFactor, pointer.y / world.scaleFactor))));
+            // joint = world.world.createJoint(planck.PulleyJoint({
+            //     localAnchorB: planck.Vec2(pointer.x / world.scaleFactor, pointer.y / world.scaleFactor),
+            // }));
+
+            console.log(dummyBody.getPosition());
+            // console.log(`${pointer.x}, ${pointer.y}`);
+        }, this);
+
+        this.input.on('pointerup', function (pointer) {
+            world.world.destroyJoint(joint);
+        }, this);
     }
 
     createContactEvents() {
         let ww = this;
-        let ball = this.circle;
+        let ball = this.ball;
         let stopperLeft = this.stopperLeft;
         let stopperRight = this.stopperRight;
         let closeLeft = this.closeLeft;
@@ -458,12 +519,22 @@ class PlayGame extends Phaser.Scene {
         ww.world.on("begin-contact", function (contact) {
             let labelBodyA = contact.m_fixtureA.m_userData;
             let labelBodyB = contact.m_fixtureB.m_userData;
+
+            // Ball when falling down (game over destroy ball)
             if (labelBodyA == "topWall" && labelBodyB == "ballss") {
-                ww.circle.destroy();
+                // ww.ball.destroy();
+                setTimeout(function () {
+                    let x = (ww.halfWidth / ww.scaleFactor) + (138 * dpr / ww.scaleFactor);
+                    let y = ww.halfHeight / ww.scaleFactor;
+                    ball.ball2Bridge(planck.Vec2(x, y));
+                    ww.closeBegin.b.setActive(false);
+                }, 1);
             }
-            if (labelBodyA == "wall4" && labelBodyB == "ballss") {
-                // console.log(labelBodyA);
-            }
+            // if (labelBodyA == "wall4" && labelBodyB == "ballss") {
+            //     // console.log(labelBodyA);
+            // }
+
+            // balls contact with bumper for getting score
             if (labelBodyA == "bumper100" && labelBodyB == "ballss") {
                 currentScore += 100;
                 // console.log(labelBodyA);
@@ -476,36 +547,161 @@ class PlayGame extends Phaser.Scene {
                 currentScore += 500;
                 // console.log(labelBodyA);
             }
+
+            // Ball contact with stopper and close the field
             if (labelBodyA == "stopperLeft" && labelBodyB == "ballss") {
-                ball.stopper();
+                let scale = ww.scaleFactor;
+                let pos = ww.stopperLeft.b.getPosition();
+                let x = pos.x;
+                let y = pos.y - (15 * dpr / scale);
+                let position = planck.Vec2(x, y);
+
+                setTimeout(function () {
+                    ball.ball2Bridge(position);
+                    ball.stopper();
+                }, 1);
                 setTimeout(function () {
                     ball.launchBall();
                 }, 2500);
                 setTimeout(function () {
-                    ww.createLeftStop();
+                    ww.closeLeft.b.setActive(true);
+                    // ww.createLeftStop();
                 }, 3000);
             }
             if (labelBodyA == "stopperRight" && labelBodyB == "ballss") {
-                ball.stopper();
+                let scale = ww.scaleFactor;
+                let pos = ww.stopperRight.b.getPosition();
+                let x = pos.x;
+                let y = pos.y - (15 * dpr / scale);
+                let position = planck.Vec2(x, y);
+
+                setTimeout(function () {
+                    ball.ball2Bridge(position);
+                    ball.stopper();
+                }, 1);
                 setTimeout(function () {
                     ball.launchBall();
                 }, 2500);
                 setTimeout(function () {
-                    ww.createRigthStop();
+                    ww.closeRight.b.setActive(true);
+                    // ww.createRigthStop();
                 }, 3000);
             }
             if (labelBodyA == "ballss" && labelBodyB == "triggerClose") {
                 console.log("boom");
                 setTimeout(function () {
-                    ww.createBeginStop();
+                    ww.closeBegin.b.setActive(true);
+                    // ww.createBeginStop();
                 }, 1);
+            }
+
+            // Ball contact with bridge entrance and exit bridge
+            if (labelBodyA == "entranceBridge" && labelBodyB == "ballss") {
+                setTimeout(function () {
+                    ww.exitBridge.b.setActive(true);
+                    let scale = ww.scaleFactor;
+                    let pos = ww.entrance2Bridge.b.getPosition();
+                    let x = pos.x - (30 * dpr / scale);
+                    let y = pos.y - (30 * dpr / scale);
+                    let position = planck.Vec2(x, y);
+                    ball.ball2Bridge(position);
+                    ball.b.applyLinearImpulse(planck.Vec2(0, -2), planck.Vec2(0, -2), true);
+                    ball.setDepth(1);
+                    ww.bridge.setDepth(0);
+                    ww.exitBridge.setDepth(0);
+                    ww.bridge.b.m_fixtureList.setSensor(false);
+                    ww.wall3.b.m_fixtureList.setSensor(true);
+                    ww.wall2.b.m_fixtureList.setSensor(true);
+                }, 1);
+            }
+            if (labelBodyA == "ballss" && labelBodyB == "exitBridge") {
+                setTimeout(function () {
+                    ball.stopper();
+                }, 50);
+
+                setTimeout(function () {
+                    ball.awake();
+                    ww.exitBridge.b.setActive(false);
+                    ball.setDepth(0);
+                    ww.bridge.setDepth(1);
+                    ww.exitBridge.setDepth(1);
+                    ww.bridge.b.m_fixtureList.setSensor(true);
+                    ww.wall3.b.m_fixtureList.setSensor(false);
+                    ww.wall2.b.m_fixtureList.setSensor(false);
+                }, 500);
+            }
+
+            // Led top contact with ball
+            if (labelBodyA == "topLedOne" && labelBodyB == "ballss") {
+                if (!topLedOne) {
+                    topLedOne = true;
+                    ww.topLedOne.setTexture("topLedOn");
+                } else {
+                    topLedOne = false;
+                    ww.topLedOne.setTexture("topLedOff");
+                }
+                ww.checkTopLed();
+            }
+            if (labelBodyA == "topLedTwo" && labelBodyB == "ballss") {
+                if (!topLedTwo) {
+                    topLedTwo = true;
+                    ww.topLedTwo.setTexture("topLedOn");
+                } else {
+                    topLedTwo = false;
+                    ww.topLedTwo.setTexture("topLedOff");
+                }
+                ww.checkTopLed();
+            }
+            if (labelBodyA == "topLedThree" && labelBodyB == "ballss") {
+                if (!topLedThree) {
+                    topLedThree = true;
+                    ww.topLedThree.setTexture("topLedOn");
+                } else {
+                    topLedThree = false;
+                    ww.topLedThree.setTexture("topLedOff");
+                }
+                ww.checkTopLed();
             }
         });
     }
 
+    createBridge() {
+        this.entranceBridge = new ChainShape(this, this.halfWidth + (122 * dpr), this.halfHeight - (57 * dpr), "entranceBridge", this.shapes.entranceBridge.fixtures[0].vertices, false, false, true, 0.7, "entranceBridge");
+        this.bridge = new ChainShape(this, this.halfWidth - (18 * dpr), this.halfHeight - (80 * dpr), "bridge", this.shapes.bridge.fixtures[0].vertices, false, false, true, 0.5, "bridge");
+        this.entrance2Bridge = new ChainShape(this, this.halfWidth + (92 * dpr), this.halfHeight - (163 * dpr), "entranceBridge", this.shapes.entranceBridge.fixtures[0].vertices, false, false, true, 0.75, "entrance2Bridge");
+        this.entrance2Bridge.b.setAngle(1.6);
+        this.exitBridge = new Circle(this, this.halfWidth - (70 * dpr), this.halfHeight + (40 * dpr), "exitBridge", (8 * dpr), false, false, true, "exitBridge");
+        this.exitBridge.b.setActive(false);
+        // this.ball.setDepth(1);
+        // .m_fixtureList.setSensor(true);
+    }
+
     createBall() {
         // create ball
-        this.circle = new Circle(this, this.halfWidth + (138 * dpr), this.halfHeight, "ball", 7 * dpr, true, false, false, "ballss", BALL_GROUP);
+        this.ball = new Circle(this, this.halfWidth + (138 * dpr), this.halfHeight, "ball", 7 * dpr, true, false, false, "ballss", BALL_GROUP);
+        this.ball1 = new Circle(this, this.halfWidth + (145 * dpr), this.halfHeight + (278 * dpr), "ball", 7 * dpr, false, false, false, "ballss1");
+        this.ball2 = new Circle(this, this.halfWidth + (145 * dpr), this.halfHeight + (260 * dpr), "ball", 7 * dpr, false, false, false, "ballss2");
+    }
+
+    checkTopLed() {
+        let ledOne = this.topLedOne;
+        let ledTwo = this.topLedTwo;
+        let ledThree = this.topLedThree;
+        if (topLedOne && topLedTwo && topLedThree) {
+            topLedOne = false;
+            topLedTwo = false;
+            topLedThree = false;
+            setTimeout(function () {
+                ledOne.setTexture("topLedOff");
+                currentScore += 5000;
+            }, 100);
+            setTimeout(function () {
+                ledTwo.setTexture("topLedOff");
+            }, 300);
+            setTimeout(function () {
+                ledThree.setTexture("topLedOff");
+            }, 600);
+        }
     }
 
     update() {
@@ -522,6 +718,7 @@ class PlayGame extends Phaser.Scene {
         } else {
             spring.scaleY = 0.55;
         }
+        // console.log(currentScore);
         this.textScore.setText(currentScore);
         // advance the simulation by 1/20 seconds
         this.world.step(1 / 16, 3, 3);
@@ -531,6 +728,12 @@ class PlayGame extends Phaser.Scene {
 
         // crearForces  method should be added at the end on each step
         this.world.clearForces();
+
+        //for testing purpose
+        if (joint != null) {
+            var pointer = this.input.activePointer;
+            joint.setTarget(planck.Vec2(pointer.x / this.scaleFactor, pointer.y / this.scaleFactor));
+        }
     }
 
     testtestbed() {
@@ -597,7 +800,7 @@ class Circle extends Phaser.GameObjects.Sprite {
         this.b.createFixture(planck.Circle(radius / 30), {
             friction: 0.5,
             restitution: 0,
-            density: 10,
+            density: 7,
             isSensor: isSensor,
             userData: label,
             filterGroupIndex: groupIndex,
@@ -631,11 +834,24 @@ class Circle extends Phaser.GameObjects.Sprite {
         // }
     }
 
+    ball2Bridge(pos) {
+        this.b.setPosition(pos);
+    }
+
     stopper() {
         let ball = this.b;
         // do not change world immediately
         setTimeout(function () {
             ball.setAwake(false);
+        }, 1);
+        console.log(ball.isSleepingAllowed());
+    }
+
+    awake() {
+        let ball = this.b;
+        // do not change world immediately
+        setTimeout(function () {
+            ball.setAwake(true);
         }, 1);
         console.log(ball.isSleepingAllowed());
     }
@@ -647,7 +863,7 @@ class Circle extends Phaser.GameObjects.Sprite {
             ball.setAwake(true);
             // ball.setTransform(planck.Vec2(0, 100), 0);
             // ball.setFixedRotation(true);
-            ball.applyLinearImpulse(planck.Vec2(0, -6), planck.Vec2(0, -6), true);
+            ball.applyLinearImpulse(planck.Vec2(0, -6.5), planck.Vec2(0, -6.5), true);
         }, 1);
 
         // setTimeout(function () {
@@ -802,6 +1018,8 @@ class Rectangle extends Phaser.GameObjects.Sprite {
 
         if (key != "") {
             this.setTexture(key);
+        } else {
+            // this.setTexture(graphics);
         }
         this.displayWidth = width * 2;
         this.displayHeight = height * 2;
@@ -1071,7 +1289,7 @@ class Poly extends Phaser.GameObjects.Sprite {
 }
 
 class ChainShape extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, key, points, isDynamic, isFixed, scale, label, groupIndex) {
+    constructor(scene, x, y, key, points, isDynamic, isFixed, isSensor, scale, label, groupIndex) {
         super(scene, x, y, key);
 
         const rnd =
@@ -1147,6 +1365,7 @@ class ChainShape extends Phaser.GameObjects.Sprite {
             friction: 0.5,
             restitution: 0,//0.5,
             density: 1,
+            isSensor: isSensor,
             userData: label,
             filterGroupIndex: groupIndex,
         });
