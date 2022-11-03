@@ -953,10 +953,9 @@ class PlayGame extends Phaser.Scene {
         if (btnSpaceHold) {
             if (spring.scaleY > 0) {
                 spring.scaleY = (result / 10) - 0.09;
-                console.log(spring.scaleY);
             }
         } else {
-            spring.scaleY = 0.55;
+            spring.scaleY = (result / 10) - 0.09;
         }
 
         if (bufferScore > 0 && bufferScore < 1000) {
