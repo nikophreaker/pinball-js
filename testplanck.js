@@ -25,13 +25,16 @@ const MAX_VELOCITY = 50;
 
 // shared variables
 let dpr;
-let currentScore, highScore;
+let currentScore, highScore, bufferScore = 0;
 let fieldBumper, fieldBumper2;
 let engine, world, render, pinball, stopperGroup;
 let leftPaddle, leftUpStopper, leftDownStopper, isLeftPaddleUp;
 let rightPaddle, rightUpStopper, rightDownStopper, isRightPaddleUp;
 let isFalling = false;
 let topLedOne = false, topLedTwo = false, topLedThree = false;
+let leftLedOne = false, leftLedTwo = false, leftLedThree = false;
+let logoLed = false;
+let centerLed = false;
 let joint = null;
 const delta = 1000 / 60;
 const subSteps = 3;
@@ -108,7 +111,8 @@ class PlayGame extends Phaser.Scene {
 
     init() {
         // Init World
-        this.world = planck.World(planck.Vec2(0, 3));
+        this.gravity = 3; // 3 is normal
+        this.world = planck.World(planck.Vec2(0, this.gravity));
         currentScore = 0;
         //init scale window
         dpr = window.devicePixelRatio;
@@ -126,7 +130,6 @@ class PlayGame extends Phaser.Scene {
         this.scaleFactor = 30;
 
         this.bodies = [];
-        this.gravity = 0; // 3 is normal
     }
 
     preload() {
@@ -232,9 +235,21 @@ class PlayGame extends Phaser.Scene {
         this.load.image("top1", "top_1.png");
         this.load.image("top2", "top_2.png");
         this.load.image("top3", "top_3.png");
+        this.load.image("hole", "hole.png");
+        this.load.image("logo", "logo.png");
+        this.load.image("logo2", "logo2.png");
         this.load.image("bgPinball", "bg_pinball.png");
+        this.load.image("bonus", "bonus.png");
         this.load.image("fieldBumper", "field_bumper.png");
         this.load.json("shapes", "shapes.json");
+
+        // Font
+        this.load.path = "./asset/font/";
+        this.load.bitmapFont(
+            'kanitBlack',
+            'Kanit-Black.png',
+            'Kanit-Black.xml'
+        );
     }
 
     // scaling sprite atau lainnya dengan mempertahankan ratio pixel
@@ -279,7 +294,7 @@ class PlayGame extends Phaser.Scene {
             text: "0",
             style: {
                 fontFamily: "Arial Black",
-                fontSize: 12 * window.devicePixelRatio,
+                fontSize: 12 * dpr,
                 fill: "#FFFFFF"
             }
         });
@@ -289,8 +304,10 @@ class PlayGame extends Phaser.Scene {
         this.createPaddle();
         this.createLed();
         this.createBumper();
-        this.createStopper();
+        this.createBonus();
+        this.createLabelScore();
         this.createBall();
+        this.createStopper();
         this.createBridge();
         this.createTrigger();
         this.createContactEvents();
@@ -307,6 +324,13 @@ class PlayGame extends Phaser.Scene {
         // this.testtestbed(); // for debug purpose
     }
 
+    createLabelScore() {
+        this.add.bitmapText(this.halfWidth - (90 * dpr), this.halfHeight + (150 * dpr), "kanitBlack", "100", 30).setAngle(90);
+        this.add.bitmapText(this.halfWidth + (95 * dpr), this.halfHeight + (150 * dpr), "kanitBlack", "100", 30).setAngle(90);
+        this.add.bitmapText(this.halfWidth - (120 * dpr), this.halfHeight + (250 * dpr), "kanitBlack", "500", 30).setAngle(90);
+        this.add.bitmapText(this.halfWidth + (125 * dpr), this.halfHeight + (250 * dpr), "kanitBlack", "500", 30).setAngle(90);
+    }
+
     createWall() {
         this.topWall = new Edge(this, 0, this.gameHeight, this.gameWidth, this.gameHeight, false, "topWall");
         this.bottomWall = new Edge(this, 0, 0, this.gameWidth, 0, false, "bottomWall");
@@ -317,36 +341,36 @@ class PlayGame extends Phaser.Scene {
             points: rightInnerWallPoints
         } = getPoints(this.shapes, "wall4");
         // this.rightInnerWall = new Poly(this, this.gameWidth - (50 * dpr), this.halfHeight + (100 * dpr), "wall3", rightInnerWallPoints, false, true, 0.45);
-        new ChainShape(this, this.halfWidth, (75 * dpr), "dome", this.shapes.dome2.fixtures[0].vertices, false, true, false, 0.5, "dome");
-        this.wall1 = new ChainShape(this, this.halfWidth + (105 * dpr), this.halfHeight + (57 * dpr), "wall1", this.shapes.wall4.fixtures[0].vertices, false, true, false, 0.5, "wall1");
-        this.wall2 = new ChainShape(this, (25 * dpr), this.halfHeight + (65 * dpr), "wall2", this.shapes.wall5.fixtures[0].vertices, false, true, false, 0.5, "wall2");
-        this.wall3 = new ChainShape(this, (75 * dpr), this.halfHeight - (125 * dpr), "wall3", this.shapes.wall6.fixtures[0].vertices, false, true, false, 0.5, "wall6");
+        new ChainShape(this, this.halfWidth, (75 * dpr), "dome", this.shapes.dome2.fixtures[0].vertices, false, true, false, 0.5, "dome", 0);
+        this.wall1 = new ChainShape(this, this.halfWidth + (105 * dpr), this.halfHeight + (57 * dpr), "wall1", this.shapes.wall4.fixtures[0].vertices, false, true, false, 0.5, "wall1", 0);
+        this.wall2 = new ChainShape(this, (25 * dpr), this.halfHeight + (65 * dpr), "wall2", this.shapes.wall5.fixtures[0].vertices, false, true, false, 0.5, "wall2", 0);
+        this.wall3 = new ChainShape(this, (75 * dpr), this.halfHeight - (125 * dpr), "wall3", this.shapes.wall6.fixtures[0].vertices, false, true, false, 0.5, "wall6", 0);
 
         // trigger and ball paddock
-        new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (280 * dpr), "", (30 * dpr), (70 * dpr), 0.5, false, false, OBSTACLE_GROUP);
-        new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (270 * dpr), "", (30 * dpr), (35 * dpr), 0.5, false, false, OBSTACLE_GROUP);
+        new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (280 * dpr), "", (30 * dpr), (70 * dpr), 0.5, false, false, OBSTACLE_GROUP, 0);
+        new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (270 * dpr), "", (30 * dpr), (35 * dpr), 0.5, false, false, OBSTACLE_GROUP, 0);
 
         //top wall
-        new ChainShape(this, this.halfWidth - (15 * dpr), (155 * dpr), "leftD", this.shapes.leftD.fixtures[0].vertices, false, true, false, 0.5, "leftD", OBSTACLE_GROUP);
-        new ChainShape(this, this.halfWidth + (15 * dpr), (155 * dpr), "rightD", this.shapes.rightD.fixtures[0].vertices, false, true, false, 0.5, "rightD", OBSTACLE_GROUP);
+        new ChainShape(this, this.halfWidth - (15 * dpr), (155 * dpr), "leftD", this.shapes.leftD.fixtures[0].vertices, false, true, false, 0.5, "leftD", OBSTACLE_GROUP, 0.5);
+        new ChainShape(this, this.halfWidth + (15 * dpr), (155 * dpr), "rightD", this.shapes.rightD.fixtures[0].vertices, false, true, false, 0.5, "rightD", OBSTACLE_GROUP, 0.5);
 
         // bottom wall
-        new ChainShape(this, (70 * dpr), this.halfHeight + (275 * dpr), "appronsLeft", this.shapes.appronsLeft.fixtures[0].vertices, false, true, false, 0.5, "appronsLeft", OBSTACLE_GROUP);
-        new ChainShape(this, this.halfWidth + (75 * dpr), this.halfHeight + (275 * dpr), "appronsRight", this.shapes.appronsRight.fixtures[0].vertices, false, true, false, 0.5, "appronsRight", OBSTACLE_GROUP);
-        new OtherBumper(this, this.halfWidth - (20 * dpr), this.halfHeight + (105 * dpr), "leftA", this.shapes.leftA.fixtures[0].vertices, false, true, 0.5, "leftA", OBSTACLE_GROUP, 0);
-        new OtherBumper(this, this.halfWidth + (15 * dpr), this.halfHeight + (105 * dpr), "rightA", this.shapes.rightA.fixtures[0].vertices, false, true, 0.5, "rightA", OBSTACLE_GROUP, 0);
+        new ChainShape(this, (70 * dpr), this.halfHeight + (275 * dpr), "appronsLeft", this.shapes.appronsLeft.fixtures[0].vertices, false, true, false, 0.5, "appronsLeft", OBSTACLE_GROUP, 0.25);
+        new ChainShape(this, this.halfWidth + (75 * dpr), this.halfHeight + (275 * dpr), "appronsRight", this.shapes.appronsRight.fixtures[0].vertices, false, true, false, 0.5, "appronsRight", OBSTACLE_GROUP, 0.25);
+        new OtherBumper(this, this.halfWidth - (20 * dpr), this.halfHeight + (105 * dpr), "leftA", this.shapes.leftA.fixtures[0].vertices, false, true, 0.5, "leftA", OBSTACLE_GROUP, 0.5);
+        new OtherBumper(this, this.halfWidth + (15 * dpr), this.halfHeight + (105 * dpr), "rightA", this.shapes.rightA.fixtures[0].vertices, false, true, 0.5, "rightA", OBSTACLE_GROUP, 0.5);
         new OtherBumper(this, this.halfWidth - (70 * dpr), this.halfHeight + (172 * dpr), "leftB", this.shapes.leftB.fixtures[0].vertices, false, true, 0.5, "leftB", OBSTACLE_GROUP, 0.7);
         new OtherBumper(this, this.halfWidth + (60 * dpr), this.halfHeight + (172 * dpr), "rightB", this.shapes.rightB.fixtures[0].vertices, false, true, 0.5, "rightB", OBSTACLE_GROUP, 0.7);
     }
 
     createStopper() {
-        this.stopperLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (302 * dpr), "stopper", this.shapes.stopper.fixtures[0].vertices, false, true, false, 0.7, "stopperLeft", OBSTACLE_GROUP);
-        this.stopperRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (302 * dpr), "stopper", this.shapes.stopper.fixtures[0].vertices, false, true, false, 0.7, "stopperRight", OBSTACLE_GROUP);
+        this.stopperLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (302 * dpr), "stopper", this.shapes.stopper.fixtures[0].vertices, false, true, false, 0.7, "stopperLeft", OBSTACLE_GROUP, 0);
+        this.stopperRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (302 * dpr), "stopper", this.shapes.stopper.fixtures[0].vertices, false, true, false, 0.7, "stopperRight", OBSTACLE_GROUP, 0);
 
         //closer
-        this.closeLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (230 * dpr), "closestopperLeft", this.shapes.closestopperLeft.fixtures[0].vertices, false, true, false, 0.7, "closestopperLeft", OBSTACLE_GROUP);
-        this.closeRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (230 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, false, 0.7, "closestopperRight", OBSTACLE_GROUP);
-        this.closeBegin = new ChainShape(this, this.halfWidth + (125 * dpr), this.halfHeight - (205 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, false, 0.7, "closeBegin", OBSTACLE_GROUP);
+        this.closeLeft = new ChainShape(this, this.halfWidth - (127 * dpr), this.halfHeight + (230 * dpr), "closestopperLeft", this.shapes.closestopperLeft.fixtures[0].vertices, false, true, false, 0.7, "closestopperLeft", OBSTACLE_GROUP, 0.1);
+        this.closeRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (230 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, false, 0.7, "closestopperRight", OBSTACLE_GROUP, 0.1);
+        this.closeBegin = new ChainShape(this, this.halfWidth + (125 * dpr), this.halfHeight - (205 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, false, 0.7, "closeBegin", OBSTACLE_GROUP, 0.1);
         this.closeLeft.b.setActive(false);
         this.closeRight.b.setActive(false);
         this.closeBegin.b.setActive(false);
@@ -365,9 +389,9 @@ class PlayGame extends Phaser.Scene {
     // }
 
     createSpring() {
-        // this.springdot = new Rectangle(this, this.halfWidth + (138 * dpr), this.halfHeight + (310 * dpr), "trigger", (10 * dpr), (5 * dpr), false, false);
-        this.springdot = new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (240 * dpr), "trigger", (10 * dpr), (5 * dpr), 0.55, false, false);
-        this.trigger = new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (240 * dpr), "trigger", (10 * dpr), (5 * dpr), 0.55, true, false);
+        // this.springdot = new Rectangle(this, this.halfWidth + (138 * dpr), this.halfHeight + (310 * dpr), "trigger", (10 * dpr), (5 * dpr), false, false,0);
+        this.springdot = new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (240 * dpr), "trigger", (10 * dpr), (5 * dpr), 0.55, false, false, 0);
+        this.trigger = new Rectangle(this, this.halfWidth + (145 * dpr), this.halfHeight + (240 * dpr), "trigger", (10 * dpr), (5 * dpr), 0.55, true, false, 0);
         this.spring = this.add.sprite(this.halfWidth + (145 * dpr), this.halfHeight + (240 * dpr), "pegas");
         this.spring.setScale(0.55);
         this.spring.setOrigin(0.5, 1);
@@ -381,6 +405,7 @@ class PlayGame extends Phaser.Scene {
             enableMotor: true
         }, this.trigger.b, this.springdot.b, this.trigger.b.getWorldCenter(), worldAxis));
 
+        console.log(this.triggerSpring);
     }
 
     createPaddle() {
@@ -392,8 +417,8 @@ class PlayGame extends Phaser.Scene {
             points: toggleRightPoints
         } = getPoints(this.shapes, "toggle_right");
 
-        this.paddleWall1 = new ChainShape(this, this.halfWidth - (91 * dpr), this.halfHeight + (186 * dpr), "leftC", this.shapes.paddlewall1.fixtures[0].vertices, false, true, false, 0.45, "leftC", OBSTACLE_GROUP);
-        this.paddleWall1 = new ChainShape(this, this.halfWidth + (80 * dpr), this.halfHeight + (186 * dpr), "rightC", this.shapes.paddlewall2.fixtures[0].vertices, false, true, false, 0.45, "rightC", OBSTACLE_GROUP);
+        this.paddleWall1 = new ChainShape(this, this.halfWidth - (91 * dpr), this.halfHeight + (186 * dpr), "leftC", this.shapes.paddlewall1.fixtures[0].vertices, false, true, false, 0.45, "leftC", OBSTACLE_GROUP, 0.3);
+        this.paddleWall1 = new ChainShape(this, this.halfWidth + (80 * dpr), this.halfHeight + (186 * dpr), "rightC", this.shapes.paddlewall2.fixtures[0].vertices, false, true, false, 0.45, "rightC", OBSTACLE_GROUP, 0.3);
         this.circle2 = new Circle(this, this.halfWidth - (63 * dpr), this.halfHeight + (233.5 * dpr), "", (6 * dpr), false, false, false, OBSTACLE_GROUP);
         this.circle3 = new Circle(this, this.halfWidth + (56 * dpr), this.halfHeight + (234 * dpr), "", (6 * dpr), false, false, false, OBSTACLE_GROUP);
         this.flipper = new Poly(this, this.halfWidth - (43 * dpr), this.halfHeight + (243.5 * dpr), "toggleLeft", toggleLeftPoints, true, false, 0.5, "leftPaddle", OBSTACLE_GROUP);
@@ -422,9 +447,20 @@ class PlayGame extends Phaser.Scene {
 
     createBumper() {
         this.bumperField = new Circle(this, this.halfWidth + (3 * dpr), this.halfHeight - (66 * dpr), "fieldBumper", (75 * dpr), false, true, false, "bumperField", BALL_GROUP);
+        this.fieldBonus = new ChainShape(this, this.halfWidth + (3 * dpr), this.halfHeight - (66 * dpr), "fieldBumper", this.shapes.fieldBonus.fixtures[0].vertices, false, true, false, 0.5, "fieldBonus", 0);
+        this.fieldBonus.b.setActive(false);
+        this.fieldBonus.b.m_fixtureList.setRestitution(1);
         this.bumper100 = new Bumper(this, this.halfWidth + (45 * dpr), this.halfHeight - (65 * dpr), "bumper100", (25 * dpr), false, true, "bumper100");
         this.bumper200 = new Bumper(this, this.halfWidth - (25 * dpr), this.halfHeight - (95 * dpr), "bumper200", (22 * dpr), false, true, "bumper200");
         this.bumper500 = new Bumper(this, this.halfWidth - (28 * dpr), this.halfHeight - (30 * dpr), "bumper500", (20 * dpr), false, true, "bumper500");
+    }
+
+    createBonus() {
+        this.enterBonus = new Circle(this, this.halfWidth + (95 * dpr), this.halfHeight + (50 * dpr), "hole", (8 * dpr), false, false, true, "enterBonus");
+        this.enterBonus2 = new Circle(this, this.halfWidth + (10 * dpr), this.halfHeight - (125 * dpr), "hole", (8 * dpr), false, false, true, "enterBonus2");
+        this.enterBonus2.setAlpha(0);
+        this.bonus = this.add.image(this.halfWidth + (26 * dpr), this.halfHeight - (23 * dpr), "bonus").setScale(0.5);
+        this.bonus.setAlpha(0);
     }
 
     createLed() {
@@ -437,6 +473,17 @@ class PlayGame extends Phaser.Scene {
         this.topLedOneInfo = new Circle(this, this.halfWidth - (30 * dpr), this.halfHeight - (175 * dpr), "top1", (8 * dpr), false, false, true, "topLedOneInfo");
         this.topLedTwoInfo = new Circle(this, this.halfWidth, this.halfHeight - (175 * dpr), "top2", (8 * dpr), false, false, true, "topLedTwoInfo");
         this.topLedThreeInfo = new Circle(this, this.halfWidth + (30 * dpr), this.halfHeight - (175 * dpr), "top3", (8 * dpr), false, false, true, "topLedThreeInfo");
+
+        // Left LED
+        this.leftLedOne = new Circle(this, this.halfWidth - (98 * dpr), this.halfHeight + (50 * dpr), "topLedOff", (6 * dpr), false, false, true, "leftLedOne");
+        this.leftLedTwo = new Circle(this, this.halfWidth - (108 * dpr), this.halfHeight + (65 * dpr), "topLedOff", (6 * dpr), false, false, true, "leftLedTwo");
+        this.leftLedThree = new Circle(this, this.halfWidth - (118 * dpr), this.halfHeight + (80 * dpr), "topLedOff", (6 * dpr), false, false, true, "leftLedThree");
+
+        // Logo Led
+        this.logoLed = new ChainShape(this, this.halfWidth - (2 * dpr), this.halfHeight + (50 * dpr), "logo2", this.shapes.logoLed.fixtures[0].vertices, false, false, true, 0.5, "logoLed", 0);
+
+        //Center Led
+        this.centerLed = new Circle(this, this.halfWidth - (2 * dpr), this.halfHeight + (105 * dpr), "topLedOff", (6 * dpr), false, false, true, "centerLed");
     }
 
     createTrigger() {
@@ -517,158 +564,319 @@ class PlayGame extends Phaser.Scene {
         let closeRight = this.closeRight;
         // console.log(this.circle.b);
         ww.world.on("begin-contact", function (contact) {
-            let labelBodyA = contact.m_fixtureA.m_userData;
-            let labelBodyB = contact.m_fixtureB.m_userData;
+            let bodyA = contact.m_fixtureA;
+            let bodyB = contact.m_fixtureB;
+            let dataBodyA = bodyA.m_userData;
+            let dataBodyB = bodyB.m_userData;
+            if (dataBodyA != null && dataBodyB != null) {
+                let labelBodyA = bodyA.m_userData.label;
+                let labelBodyB = bodyB.m_userData.label;
 
-            // Ball when falling down (game over destroy ball)
-            if (labelBodyA == "topWall" && labelBodyB == "ballss") {
-                // ww.ball.destroy();
-                setTimeout(function () {
-                    let x = (ww.halfWidth / ww.scaleFactor) + (138 * dpr / ww.scaleFactor);
-                    let y = ww.halfHeight / ww.scaleFactor;
-                    ball.ball2Bridge(planck.Vec2(x, y));
-                    ww.closeBegin.b.setActive(false);
-                }, 1);
-            }
-            // if (labelBodyA == "wall4" && labelBodyB == "ballss") {
-            //     // console.log(labelBodyA);
-            // }
+                // Ball when falling down (game over destroy ball)
+                if (labelBodyA == "topWall" && labelBodyB == "ballss") {
+                    // ww.ball.destroy();
+                    setTimeout(function () {
+                        let x = (ww.halfWidth / ww.scaleFactor) + (138 * dpr / ww.scaleFactor);
+                        let y = ww.halfHeight / ww.scaleFactor;
+                        ball.ball2Bridge(planck.Vec2(x, y));
+                        ww.closeBegin.b.setActive(false);
+                    }, 1);
+                }
+                // if (labelBodyA == "wall4" && labelBodyB == "ballss") {
+                //     // console.log(labelBodyA);
+                // }
 
-            // balls contact with bumper for getting score
-            if (labelBodyA == "bumper100" && labelBodyB == "ballss") {
-                currentScore += 100;
-                // console.log(labelBodyA);
-            }
-            if (labelBodyA == "bumper200" && labelBodyB == "ballss") {
-                currentScore += 200;
-                // console.log(labelBodyA);
-            }
-            if (labelBodyA == "bumper500" && labelBodyB == "ballss") {
-                currentScore += 500;
-                // console.log(labelBodyA);
-            }
+                // balls contact with bumper for getting score
+                if (labelBodyA == "bumper100" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        bufferScore += 100
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "bumper200" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        bufferScore += 200
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "bumper500" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        bufferScore += 500;
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
 
-            // Ball contact with stopper and close the field
-            if (labelBodyA == "stopperLeft" && labelBodyB == "ballss") {
-                let scale = ww.scaleFactor;
-                let pos = ww.stopperLeft.b.getPosition();
-                let x = pos.x;
-                let y = pos.y - (15 * dpr / scale);
-                let position = planck.Vec2(x, y);
-
-                setTimeout(function () {
-                    ball.ball2Bridge(position);
-                    ball.stopper();
-                }, 1);
-                setTimeout(function () {
-                    ball.launchBall();
-                }, 2500);
-                setTimeout(function () {
-                    ww.closeLeft.b.setActive(true);
-                    // ww.createLeftStop();
-                }, 3000);
-            }
-            if (labelBodyA == "stopperRight" && labelBodyB == "ballss") {
-                let scale = ww.scaleFactor;
-                let pos = ww.stopperRight.b.getPosition();
-                let x = pos.x;
-                let y = pos.y - (15 * dpr / scale);
-                let position = planck.Vec2(x, y);
-
-                setTimeout(function () {
-                    ball.ball2Bridge(position);
-                    ball.stopper();
-                }, 1);
-                setTimeout(function () {
-                    ball.launchBall();
-                }, 2500);
-                setTimeout(function () {
-                    ww.closeRight.b.setActive(true);
-                    // ww.createRigthStop();
-                }, 3000);
-            }
-            if (labelBodyA == "ballss" && labelBodyB == "triggerClose") {
-                console.log("boom");
-                setTimeout(function () {
-                    ww.closeBegin.b.setActive(true);
-                    // ww.createBeginStop();
-                }, 1);
-            }
-
-            // Ball contact with bridge entrance and exit bridge
-            if (labelBodyA == "entranceBridge" && labelBodyB == "ballss") {
-                setTimeout(function () {
-                    ww.exitBridge.b.setActive(true);
+                // Ball contact with stopper and close the field
+                if (labelBodyA == "stopperLeft" && labelBodyB == "ballss") {
                     let scale = ww.scaleFactor;
-                    let pos = ww.entrance2Bridge.b.getPosition();
-                    let x = pos.x - (30 * dpr / scale);
-                    let y = pos.y - (30 * dpr / scale);
+                    let pos = ww.stopperLeft.b.getPosition();
+                    let x = pos.x;
+                    let y = pos.y - (15 * dpr / scale);
                     let position = planck.Vec2(x, y);
-                    ball.ball2Bridge(position);
-                    ball.b.applyLinearImpulse(planck.Vec2(0, -2), planck.Vec2(0, -2), true);
-                    ball.setDepth(1);
-                    ww.bridge.setDepth(0);
-                    ww.exitBridge.setDepth(0);
-                    ww.bridge.b.m_fixtureList.setSensor(false);
-                    ww.wall3.b.m_fixtureList.setSensor(true);
-                    ww.wall2.b.m_fixtureList.setSensor(true);
-                }, 1);
-            }
-            if (labelBodyA == "ballss" && labelBodyB == "exitBridge") {
-                setTimeout(function () {
-                    ball.stopper();
-                }, 50);
+                    if (dataBodyA.isScore) {
+                        bufferScore += 500;
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
 
-                setTimeout(function () {
-                    ball.awake();
-                    ww.exitBridge.b.setActive(false);
-                    ball.setDepth(0);
-                    ww.bridge.setDepth(1);
-                    ww.exitBridge.setDepth(1);
-                    ww.bridge.b.m_fixtureList.setSensor(true);
-                    ww.wall3.b.m_fixtureList.setSensor(false);
-                    ww.wall2.b.m_fixtureList.setSensor(false);
-                }, 500);
-            }
+                    setTimeout(function () {
+                        ball.ball2Bridge(position);
+                        // ball.stopper();
+                        ball.b.setActive(false);
+                    }, 1);
+                    setTimeout(function () {
+                        ball.b.setActive(true);
+                        ball.launchBall();
+                    }, 2500);
+                    setTimeout(function () {
+                        ww.closeLeft.b.setActive(true);
+                        // ww.createLeftStop();
+                    }, 3000);
+                }
+                if (labelBodyA == "stopperRight" && labelBodyB == "ballss") {
+                    let scale = ww.scaleFactor;
+                    let pos = ww.stopperRight.b.getPosition();
+                    let x = pos.x;
+                    let y = pos.y - (15 * dpr / scale);
+                    let position = planck.Vec2(x, y);
+                    if (dataBodyA.isScore) {
+                        bufferScore += 500;
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
 
-            // Led top contact with ball
-            if (labelBodyA == "topLedOne" && labelBodyB == "ballss") {
-                if (!topLedOne) {
-                    topLedOne = true;
-                    ww.topLedOne.setTexture("topLedOn");
-                } else {
-                    topLedOne = false;
-                    ww.topLedOne.setTexture("topLedOff");
+                    setTimeout(function () {
+                        ball.ball2Bridge(position);
+                        // ball.stopper();
+                        ball.b.setActive(false);
+                    }, 1);
+                    setTimeout(function () {
+                        ball.b.setActive(true);
+                        ball.launchBall();
+                    }, 2500);
+                    setTimeout(function () {
+                        ww.closeRight.b.setActive(true);
+                        // ww.createRigthStop();
+                    }, 3000);
                 }
-                ww.checkTopLed();
+                if (labelBodyA == "ballss" && labelBodyB == "triggerClose") {
+                    console.log("boom");
+                    setTimeout(function () {
+                        ww.closeBegin.b.setActive(true);
+                        // ww.createBeginStop();
+                    }, 1);
+                } else if (labelBodyA == "triggerClose" && labelBodyB == "ballss") {
+                    console.log("boom");
+                    setTimeout(function () {
+                        ww.closeBegin.b.setActive(true);
+                        // ww.createBeginStop();
+                    }, 1);
+                }
+
+                // Ball contact with bridge entrance and exit bridge
+                if (labelBodyA == "entranceBridge" && labelBodyB == "ballss") {
+                    setTimeout(function () {
+                        ww.exitBridge.b.setActive(true);
+                        let scale = ww.scaleFactor;
+                        let pos = ww.entrance2Bridge.b.getPosition();
+                        let x = pos.x - (30 * dpr / scale);
+                        let y = pos.y - (30 * dpr / scale);
+                        let position = planck.Vec2(x, y);
+                        ball.ball2Bridge(position);
+                        ball.b.setMassData({
+                            mass: 0.5,
+                            center: planck.Vec2(),
+                            I: 1  //make body cant rotate
+                        });
+                        ball.b.applyLinearImpulse(planck.Vec2(0, -6.5), planck.Vec2(0, -6.5), true);
+                        ball.setDepth(1);
+                        ww.bridge.setDepth(0);
+                        ww.exitBridge.setDepth(0);
+                        ww.bridge.b.m_fixtureList.setSensor(false);
+                        ww.wall3.b.m_fixtureList.setSensor(true);
+                        ww.wall2.b.m_fixtureList.setSensor(true);
+                    }, 1);
+                }
+                if (labelBodyA == "ballss" && labelBodyB == "exitBridge") {
+                    setTimeout(function () {
+                        ball.stopper();
+                    }, 50);
+
+                    setTimeout(function () {
+                        ball.awake();
+                        ball.b.setMassData({
+                            mass: 0.5,
+                            center: planck.Vec2(),
+                            I: 0  //make body cant rotate
+                        });
+                        ww.exitBridge.b.setActive(false);
+                        ball.setDepth(0);
+                        ww.bridge.setDepth(1);
+                        ww.exitBridge.setDepth(1);
+                        ww.bridge.b.m_fixtureList.setSensor(true);
+                        ww.wall3.b.m_fixtureList.setSensor(false);
+                        ww.wall2.b.m_fixtureList.setSensor(false);
+                    }, 500);
+                }
+
+                // Led top contact with ball
+                if (labelBodyA == "topLedOne" && labelBodyB == "ballss") {
+                    if (!topLedOne) {
+                        topLedOne = true;
+                        ww.topLedOne.setTexture("topLedOn");
+                    } else {
+                        topLedOne = false;
+                        ww.topLedOne.setTexture("topLedOff");
+                    }
+                    ww.checkTopLed();
+                }
+                if (labelBodyA == "topLedTwo" && labelBodyB == "ballss") {
+                    if (!topLedTwo) {
+                        topLedTwo = true;
+                        ww.topLedTwo.setTexture("topLedOn");
+                    } else {
+                        topLedTwo = false;
+                        ww.topLedTwo.setTexture("topLedOff");
+                    }
+                    ww.checkTopLed();
+                }
+                if (labelBodyA == "topLedThree" && labelBodyB == "ballss") {
+                    if (!topLedThree) {
+                        topLedThree = true;
+                        ww.topLedThree.setTexture("topLedOn");
+                    } else {
+                        topLedThree = false;
+                        ww.topLedThree.setTexture("topLedOff");
+                    }
+                    ww.checkTopLed();
+                }
+
+                // Led left contact with ball
+                if (labelBodyA == "leftLedOne" && labelBodyB == "ballss") {
+                    if (!leftLedOne) {
+                        leftLedOne = true;
+                        ww.leftLedOne.setTexture("topLedOn");
+                    } else {
+                        leftLedOne = false;
+                        ww.leftLedOne.setTexture("topLedOff");
+                    }
+                    ww.checkTopLed();
+                }
+                if (labelBodyA == "leftLedTwo" && labelBodyB == "ballss") {
+                    if (!leftLedTwo) {
+                        leftLedTwo = true;
+                        ww.leftLedTwo.setTexture("topLedOn");
+                    } else {
+                        leftLedTwo = false;
+                        ww.leftLedTwo.setTexture("topLedOff");
+                    }
+                    ww.checkTopLed();
+                }
+                if (labelBodyA == "leftLedThree" && labelBodyB == "ballss") {
+                    if (!leftLedThree) {
+                        leftLedThree = true;
+                        ww.leftLedThree.setTexture("topLedOn");
+                    } else {
+                        leftLedThree = false;
+                        ww.leftLedThree.setTexture("topLedOff");
+                    }
+                    ww.checkTopLed();
+                }
+
+                // Led Logo & Led center contact with ball
+                if (labelBodyA == "logoLed" && labelBodyB == "ballss") {
+                    if (!logoLed) {
+                        logoLed = true;
+                        ww.logoLed.setTexture("logo");
+                    } else {
+                        logoLed = false;
+                        ww.logoLed.setTexture("logo2");
+                    }
+                    ww.checkTopLed();
+                }
+                if (labelBodyA == "centerLed" && labelBodyB == "ballss") {
+                    if (!centerLed) {
+                        centerLed = true;
+                        ww.centerLed.setTexture("topLedOn");
+                    } else {
+                        centerLed = false;
+                        ww.centerLed.setTexture("topLedOff");
+                    }
+                    ww.checkTopLed();
+                }
+
+                //Enter Bonus (contact ball with enterBonus)
+                if (labelBodyA == "enterBonus" && labelBodyB == "ballss") {
+                    let getpos = ww.enterBonus2.b.getPosition();
+                    let x = getpos.x;
+                    let y = getpos.y;
+                    let pos = planck.Vec2(x, y);
+
+                    setTimeout(function () {
+                        ball.ball2Bridge(pos);
+                        // ball.stopper();
+                    }, 1);
+
+                    ww.bonus.setAlpha(1);
+                    ww.enterBonus2.setAlpha(1);
+                    ww.fieldBonus.setAlpha(0);
+                    ww.fieldBonus.b.setActive(true);
+
+                    setTimeout(function () {
+                        ww.fieldBonus.b.setActive(false);
+                        ww.fieldBonus.b.m_fixtureList.setRestitution(1);
+                        ww.enterBonus2.setAlpha(0);
+                        ww.fieldBonus.setAlpha(1);
+                        ww.bonus.setAlpha(0);
+                    }, 5000);
+
+                }
             }
-            if (labelBodyA == "topLedTwo" && labelBodyB == "ballss") {
-                if (!topLedTwo) {
-                    topLedTwo = true;
-                    ww.topLedTwo.setTexture("topLedOn");
-                } else {
-                    topLedTwo = false;
-                    ww.topLedTwo.setTexture("topLedOff");
+        });
+
+        ww.world.on("end-contact", function (contact) {
+            let bodyA = contact.m_fixtureA;
+            let bodyB = contact.m_fixtureB;
+            let dataBodyA = bodyA.m_userData;
+            let dataBodyB = bodyB.m_userData;
+            if (dataBodyA != null && dataBodyB != null) {
+                let labelBodyA = bodyA.m_userData.label;
+                let labelBodyB = bodyB.m_userData.label;
+
+                // balls contact with bumper for getting score
+                if (labelBodyA == "bumper100" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
                 }
-                ww.checkTopLed();
-            }
-            if (labelBodyA == "topLedThree" && labelBodyB == "ballss") {
-                if (!topLedThree) {
-                    topLedThree = true;
-                    ww.topLedThree.setTexture("topLedOn");
-                } else {
-                    topLedThree = false;
-                    ww.topLedThree.setTexture("topLedOff");
+                if (labelBodyA == "bumper200" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
                 }
-                ww.checkTopLed();
+                if (labelBodyA == "bumper500" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+
+                // Ball contact with stopper and close the field
+                if (labelBodyA == "stopperLeft" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+                if (labelBodyA == "stopperRight" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
             }
         });
     }
 
     createBridge() {
-        this.entranceBridge = new ChainShape(this, this.halfWidth + (122 * dpr), this.halfHeight - (57 * dpr), "entranceBridge", this.shapes.entranceBridge.fixtures[0].vertices, false, false, true, 0.7, "entranceBridge");
-        this.bridge = new ChainShape(this, this.halfWidth - (18 * dpr), this.halfHeight - (80 * dpr), "bridge", this.shapes.bridge.fixtures[0].vertices, false, false, true, 0.5, "bridge");
-        this.entrance2Bridge = new ChainShape(this, this.halfWidth + (92 * dpr), this.halfHeight - (163 * dpr), "entranceBridge", this.shapes.entranceBridge.fixtures[0].vertices, false, false, true, 0.75, "entrance2Bridge");
+        this.entranceBridge = new ChainShape(this, this.halfWidth + (122 * dpr), this.halfHeight - (57 * dpr), "entranceBridge", this.shapes.entranceBridge.fixtures[0].vertices, false, false, true, 0.7, "entranceBridge", 0);
+        this.bridge = new ChainShape(this, this.halfWidth - (18 * dpr), this.halfHeight - (80 * dpr), "bridge", this.shapes.bridge.fixtures[0].vertices, false, false, true, 0.5, "bridge", 0);
+        this.entrance2Bridge = new ChainShape(this, this.halfWidth + (92 * dpr), this.halfHeight - (163 * dpr), "entranceBridge", this.shapes.entranceBridge.fixtures[0].vertices, false, false, true, 0.75, "entrance2Bridge", 0);
         this.entrance2Bridge.b.setAngle(1.6);
         this.exitBridge = new Circle(this, this.halfWidth - (70 * dpr), this.halfHeight + (40 * dpr), "exitBridge", (8 * dpr), false, false, true, "exitBridge");
         this.exitBridge.b.setActive(false);
@@ -678,7 +886,7 @@ class PlayGame extends Phaser.Scene {
 
     createBall() {
         // create ball
-        this.ball = new Circle(this, this.halfWidth + (138 * dpr), this.halfHeight, "ball", 7 * dpr, true, false, false, "ballss", BALL_GROUP);
+        this.ball = new Circle(this, this.halfWidth + (138 * dpr), this.halfHeight, "ball", 7 * dpr, true, true, false, "ballss", BALL_GROUP);
         this.ball1 = new Circle(this, this.halfWidth + (145 * dpr), this.halfHeight + (278 * dpr), "ball", 7 * dpr, false, false, false, "ballss1");
         this.ball2 = new Circle(this, this.halfWidth + (145 * dpr), this.halfHeight + (260 * dpr), "ball", 7 * dpr, false, false, false, "ballss2");
     }
@@ -687,13 +895,18 @@ class PlayGame extends Phaser.Scene {
         let ledOne = this.topLedOne;
         let ledTwo = this.topLedTwo;
         let ledThree = this.topLedThree;
+        let leftLed1 = this.leftLedOne;
+        let leftLed2 = this.leftLedTwo;
+        let leftLed3 = this.leftLedThree;
+        let logoLed1 = this.logoLed;
+        let centerLed1 = this.centerLed;
         if (topLedOne && topLedTwo && topLedThree) {
             topLedOne = false;
             topLedTwo = false;
             topLedThree = false;
             setTimeout(function () {
                 ledOne.setTexture("topLedOff");
-                currentScore += 5000;
+                bufferScore += 5000;
             }, 100);
             setTimeout(function () {
                 ledTwo.setTexture("topLedOff");
@@ -702,22 +915,58 @@ class PlayGame extends Phaser.Scene {
                 ledThree.setTexture("topLedOff");
             }, 600);
         }
+
+        if (leftLedOne && leftLedTwo && leftLedThree) {
+            leftLedOne = false;
+            leftLedTwo = false;
+            leftLedThree = false;
+            setTimeout(function () {
+                leftLed1.setTexture("topLedOff");
+                bufferScore += 1000;
+            }, 100);
+            setTimeout(function () {
+                leftLed2.setTexture("topLedOff");
+            }, 300);
+            setTimeout(function () {
+                leftLed3.setTexture("topLedOff");
+            }, 600);
+        }
+
+        // if (logoLed) {
+        //     logoLed = false;
+        //     setTimeout(function () {
+        //         logoLed1.setTexture("logo2");
+        //     }, 100);
+        // }
+        // if (centerLed) {
+        //     centerLed = false;
+        //     setTimeout(function () {
+        //         logoLed1.setTexture("topLedOff");
+        //     }, 100);
+        // }
     }
 
     update() {
-
         let spring = this.spring;
+        let lengthSpring = -(this.triggerSpring.m_s1);
+        let result = ((lengthSpring * 100) / 100);
         if (btnSpaceHold) {
-            if (spring.scaleY > 0.013) {
-                if (spring.scaleY < 0.45) {
-                    spring.scaleY -= 0.015;
-                } else {
-                    spring.scaleY -= 0.005;
-                }
+            if (spring.scaleY > 0) {
+                spring.scaleY = (result / 10) - 0.09;
+                console.log(spring.scaleY);
             }
         } else {
             spring.scaleY = 0.55;
         }
+
+        if (bufferScore > 0 && bufferScore < 1000) {
+            currentScore += 100;
+            bufferScore -= 100;
+        } else if (bufferScore > 1000) {
+            currentScore += 1000;
+            bufferScore -= 1000;
+        }
+
         // console.log(currentScore);
         this.textScore.setText(currentScore);
         // advance the simulation by 1/20 seconds
@@ -789,7 +1038,7 @@ class Circle extends Phaser.GameObjects.Sprite {
 
         // Body
         this.b = scene.world.createBody({
-            userData: label,
+            userData: { label: label },
             bullet: true,
         });
         if (this.isDynamic) {
@@ -802,7 +1051,7 @@ class Circle extends Phaser.GameObjects.Sprite {
             restitution: 0,
             density: 7,
             isSensor: isSensor,
-            userData: label,
+            userData: { label: label, isScore: true },
             filterGroupIndex: groupIndex,
         });
         // console.log(this.b);
@@ -814,7 +1063,7 @@ class Circle extends Phaser.GameObjects.Sprite {
         this.b.setMassData({
             mass: 0.5,
             center: planck.Vec2(),
-            I: 1
+            I: isFixed ? 0 : 1  //make body cant rotate
         });
 
         //     this.b.render = {
@@ -863,6 +1112,7 @@ class Circle extends Phaser.GameObjects.Sprite {
             ball.setAwake(true);
             // ball.setTransform(planck.Vec2(0, 100), 0);
             // ball.setFixedRotation(true);
+            // ball.applyForce(planck.Vec2(0, -6.5), planck.Vec2(0, -6.5));
             ball.applyLinearImpulse(planck.Vec2(0, -6.5), planck.Vec2(0, -6.5), true);
         }, 1);
 
@@ -930,7 +1180,7 @@ class Bumper extends Phaser.GameObjects.Sprite {
 
         // Body
         this.b = scene.world.createBody({
-            userData: label,
+            userData: { label: label },
             bullet: true
         });
         if (this.isDynamic) {
@@ -942,7 +1192,10 @@ class Bumper extends Phaser.GameObjects.Sprite {
             friction: 0.5,
             restitution: 1.5,
             density: 1,
-            userData: label,
+            userData: {
+                label: label,
+                isScore: true
+            },
             filterGroupIndex: groupIndex,
         });
         // console.log(this.b);
@@ -998,7 +1251,7 @@ class Bumper extends Phaser.GameObjects.Sprite {
 }
 
 class Rectangle extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, key, width, height, scale, isDynamic, isFixed, groupIndex) {
+    constructor(scene, x, y, key, width, height, scale, isDynamic, isFixed, groupIndex, restitution) {
         super(scene, x, y);
 
         const rnd =
@@ -1043,7 +1296,7 @@ class Rectangle extends Phaser.GameObjects.Sprite {
         // const init = img => {
         this.b.createFixture(planck.Box(width * scale / 30, height * scale / 30), {
             friction: 1,
-            restitution: 0.5,
+            restitution: restitution,
             density: 1,
             filterGroupIndex: groupIndex,
         });
@@ -1053,7 +1306,7 @@ class Rectangle extends Phaser.GameObjects.Sprite {
         );
 
         this.b.setMassData({
-            mass: 3,
+            mass: 3,//3,
             center: planck.Vec2(),
             I: 1
         });
@@ -1104,7 +1357,7 @@ class Edge extends Phaser.GameObjects.Sprite {
             friction: 1,
             restitution: 0.5,
             density: 1,
-            userData: label,
+            userData: { label: label, isScore: true },
             filterGroupIndex: groupIndex,
         }
         );
@@ -1244,7 +1497,7 @@ class Poly extends Phaser.GameObjects.Sprite {
             friction: 0.5,
             restitution: 0,
             density: 10,
-            userData: label,
+            userData: { label: label, isScore: true },
             filterGroupIndex: groupIndex,
         });
         this.b.setPosition(
@@ -1289,7 +1542,7 @@ class Poly extends Phaser.GameObjects.Sprite {
 }
 
 class ChainShape extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, key, points, isDynamic, isFixed, isSensor, scale, label, groupIndex) {
+    constructor(scene, x, y, key, points, isDynamic, isFixed, isSensor, scale, label, groupIndex, restitution) {
         super(scene, x, y, key);
 
         const rnd =
@@ -1363,10 +1616,10 @@ class ChainShape extends Phaser.GameObjects.Sprite {
 
         this.b.createFixture(planck.Chain(vertices, arrTemp.length), {
             friction: 0.5,
-            restitution: 0,//0.5,
+            restitution: restitution,//0.5,
             density: 1,
             isSensor: isSensor,
-            userData: label,
+            userData: { label: label, isScore: true },
             filterGroupIndex: groupIndex,
         });
         this.b.setPosition(
@@ -1481,7 +1734,7 @@ class OtherBumper extends Phaser.GameObjects.Sprite {
             friction: 0.5,
             restitution: restitution,
             density: 1,
-            userData: label,
+            userData: { label: label, isScore: true },
             filterGroupIndex: groupIndex,
         });
         this.b.setPosition(

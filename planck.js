@@ -25,7 +25,7 @@
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
         typeof define === 'function' && define.amd ? define(['exports'], factory) :
-        (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.planck = {}));
+            (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.planck = {}));
 }(this, (function (exports) {
     'use strict';
 
@@ -48,8 +48,8 @@
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({
-                    __proto__: []
-                }
+                __proto__: []
+            }
                 instanceof Array && function (d, b) {
                     d.__proto__ = b;
                 }) ||
@@ -888,7 +888,7 @@
      */
     // tslint:disable-next-line:no-unnecessary-class
     var Settings = /** @class */ (function () {
-        function Settings() {}
+        function Settings() { }
         Object.defineProperty(Settings, "linearSlopSquared", {
             get: function () {
                 return Settings.linearSlop * Settings.linearSlop;
@@ -990,7 +990,7 @@
          * A velocity threshold for elastic collisions. Any collision with a relative
          * linear velocity below this threshold will be treated as inelastic.
          */
-        Settings.velocityThreshold = 1.0;
+        Settings.velocityThreshold = 0//1.0;
         /**
          * The maximum linear position correction used when solving constraints. This
          * helps to prevent overshoot.
@@ -1182,7 +1182,7 @@
                     // tslint:disable-next-line:no-object-literal-type-assertion
                     return {};
                 },
-                release: function (stack) {}
+                release: function (stack) { }
             });
             this.stackPool = new Pool({
                 create: function () {
@@ -2587,9 +2587,9 @@
      * Fixture is created. Shapes may encapsulate one or more child shapes.
      */
     var Shape = /** @class */ (function () {
-        function Shape() {}
+        function Shape() { }
         /** @internal */
-        Shape.prototype._reset = function () {};
+        Shape.prototype._reset = function () { };
         Shape.isValid = function (obj) {
             if (obj === null || typeof obj === 'undefined') {
                 return false;
@@ -4246,7 +4246,7 @@
      * The features that intersect to form the contact point.
      */
     var ContactFeature = /** @class */ (function () {
-        function ContactFeature() {}
+        function ContactFeature() { }
         ContactFeature.prototype.set = function (o) {
             this.indexA = o.indexA;
             this.indexB = o.indexB;
@@ -4621,18 +4621,18 @@
         Simplex.prototype.toString = function () {
             if (this.m_count === 3) {
                 return ["+" + this.m_count,
-                    this.m_v1.a, this.m_v1.wA.x, this.m_v1.wA.y, this.m_v1.wB.x, this.m_v1.wB.y,
-                    this.m_v2.a, this.m_v2.wA.x, this.m_v2.wA.y, this.m_v2.wB.x, this.m_v2.wB.y,
-                    this.m_v3.a, this.m_v3.wA.x, this.m_v3.wA.y, this.m_v3.wB.x, this.m_v3.wB.y
+                this.m_v1.a, this.m_v1.wA.x, this.m_v1.wA.y, this.m_v1.wB.x, this.m_v1.wB.y,
+                this.m_v2.a, this.m_v2.wA.x, this.m_v2.wA.y, this.m_v2.wB.x, this.m_v2.wB.y,
+                this.m_v3.a, this.m_v3.wA.x, this.m_v3.wA.y, this.m_v3.wB.x, this.m_v3.wB.y
                 ].toString();
             } else if (this.m_count === 2) {
                 return ["+" + this.m_count,
-                    this.m_v1.a, this.m_v1.wA.x, this.m_v1.wA.y, this.m_v1.wB.x, this.m_v1.wB.y,
-                    this.m_v2.a, this.m_v2.wA.x, this.m_v2.wA.y, this.m_v2.wB.x, this.m_v2.wB.y
+                this.m_v1.a, this.m_v1.wA.x, this.m_v1.wA.y, this.m_v1.wB.x, this.m_v1.wB.y,
+                this.m_v2.a, this.m_v2.wA.x, this.m_v2.wA.y, this.m_v2.wB.x, this.m_v2.wB.y
                 ].toString();
             } else if (this.m_count === 1) {
                 return ["+" + this.m_count,
-                    this.m_v1.a, this.m_v1.wA.x, this.m_v1.wA.y, this.m_v1.wB.x, this.m_v1.wB.y
+                this.m_v1.a, this.m_v1.wA.x, this.m_v1.wA.y, this.m_v1.wB.x, this.m_v1.wB.y
                 ].toString();
             } else {
                 return "+" + this.m_count;
@@ -5986,7 +5986,7 @@
         /**
          * Shift the origin for any points stored in world coordinates.
          */
-        Joint.prototype.shiftOrigin = function (newOrigin) {};
+        Joint.prototype.shiftOrigin = function (newOrigin) { };
         return Joint;
     }());
 
@@ -6048,7 +6048,7 @@
      * Output parameters for TimeOfImpact.
      */
     var TOIOutput = /** @class */ (function () {
-        function TOIOutput() {}
+        function TOIOutput() { }
         return TOIOutput;
     }());
     stats$1.toiTime = 0;
@@ -11672,7 +11672,7 @@
             return joint;
         };
         /** @internal */
-        MotorJoint.prototype._setAnchors = function (def) {};
+        MotorJoint.prototype._setAnchors = function (def) { };
         /**
          * Set the maximum friction force in N.
          */
@@ -14100,7 +14100,7 @@
         manifold.localNormal = localNormal;
         manifold.localPoint = planePoint;
         var pointCount = 0;
-        for (var i = 0; i < clipPoints2.length /* maxManifoldPoints */ ; ++i) {
+        for (var i = 0; i < clipPoints2.length /* maxManifoldPoints */; ++i) {
             var separation = Vec2.dot(normal, clipPoints2[i].v) - frontOffset;
             if (separation <= totalRadius) {
                 var cp = manifold.points[pointCount];
@@ -14300,7 +14300,7 @@
      * This structure is used to keep track of the best separating axis.
      */
     var EPAxis = /** @class */ (function () {
-        function EPAxis() {}
+        function EPAxis() { }
         return EPAxis;
     }());
     /**
@@ -15290,7 +15290,7 @@
                 return new noop;
             };
 
-            function noop() {}
+            function noop() { }
         }
     });
 
@@ -15598,7 +15598,7 @@
     nfTexture.pipe = nfTexture.src = nfTexture.dest = function () {
         return this;
     };
-    nfTexture.draw = function () {};
+    nfTexture.draw = function () { };
 
     var nfSelection = new Selection(nfTexture);
 
@@ -17727,8 +17727,8 @@
         fn: function (t) {
             return t < 1 / 2.75 ? 7.5625 * t * t : t < 2 / 2.75 ? 7.5625 *
                 (t -= 1.5 / 2.75) * t + .75 : t < 2.5 / 2.75 ? 7.5625 *
-                (t -= 2.25 / 2.75) * t + .9375 : 7.5625 * (t -= 2.625 / 2.75) * t +
-                .984375;
+                    (t -= 2.25 / 2.75) * t + .9375 : 7.5625 * (t -= 2.625 / 2.75) * t +
+            .984375;
         }
     });
 
