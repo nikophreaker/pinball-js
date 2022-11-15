@@ -385,8 +385,11 @@ class PlayGame extends Phaser.Scene {
         this.closeRight = new ChainShape(this, this.halfWidth + (117 * dpr), this.halfHeight + (230 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, false, 0.7, "closestopperRight", OBSTACLE_GROUP, 0.1, 2);
         this.closeBegin = new ChainShape(this, this.halfWidth + (125 * dpr), this.halfHeight - (205 * dpr), "closestopperRight", this.shapes.closestopperRight.fixtures[0].vertices, false, true, false, 0.7, "closeBegin", OBSTACLE_GROUP, 0.1, 2);
         this.closeLeft.b.setActive(false);
+        this.closeLeft.setAlpha(0);
         this.closeRight.b.setActive(false);
+        this.closeRight.setAlpha(0);
         this.closeBegin.b.setActive(false);
+        this.closeBegin.setAlpha(0);
     }
 
     // createLeftStop() {
@@ -660,6 +663,7 @@ class PlayGame extends Phaser.Scene {
                         let y = ww.halfHeight / ww.scaleFactor;
                         ball.ball2Bridge(planck.Vec2(x, y));
                         ww.closeBegin.b.setActive(false);
+                        ww.closeBegin.setAlpha(0);
                     }, 1);
                 }
                 // if (labelBodyA == "wall4" && labelBodyB == "ballss") {
@@ -709,6 +713,7 @@ class PlayGame extends Phaser.Scene {
                     }, 2500);
                     setTimeout(function () {
                         ww.closeLeft.b.setActive(true);
+                        ww.closeLeft.setAlpha(1);
                         // ww.createLeftStop();
                     }, 3000);
                 }
@@ -734,6 +739,7 @@ class PlayGame extends Phaser.Scene {
                     }, 2500);
                     setTimeout(function () {
                         ww.closeRight.b.setActive(true);
+                        ww.closeRight.setAlpha(1);
                         // ww.createRigthStop();
                     }, 3000);
                 }
@@ -741,6 +747,7 @@ class PlayGame extends Phaser.Scene {
                     console.log("boom");
                     setTimeout(function () {
                         ww.closeBegin.b.setActive(true);
+                        ww.closeBegin.setAlpha(1);
                         // ww.createBeginStop();
                     }, 1);
                 } else if (labelBodyA == "triggerClose" && labelBodyB == "ballss") {
@@ -1126,7 +1133,8 @@ class PlayGame extends Phaser.Scene {
         }
 
         // console.log(currentScore);
-        this.textScore.setText(currentScore);
+        let scoreFormated = String(currentScore).replace(/(.)(?=(\d{3})+$)/g, '$1,')
+        this.textScore.setText(scoreFormated);
         // advance the simulation by 1/20 seconds
         this.world.step(1 / 16, 3, 3);
         // this.world.step(1 / 16, 10, 8);
