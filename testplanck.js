@@ -24,6 +24,7 @@ const PADDLE_PULL = 0.005;
 const MAX_VELOCITY = 50;
 
 // shared variables
+let isPause = false;
 let dpr, scaleSprite;
 let currentScore, highScore, bufferScore;
 let fieldBumper, fieldBumper2;
@@ -93,7 +94,7 @@ window.onload = function () {
         //         mapping: 'matterCollision'
         //     }]
         // },
-        scene: [PlayGame]
+        scene: [PlayGame, Leaderboard]
     };
     game = new Phaser.Game(gameConfig);
     window.focus();
@@ -120,7 +121,11 @@ class PlayGame extends Phaser.Scene {
     init() {
         // Init World
         this.gravity = 3; // 3 is normal
-        this.world = planck.World(planck.Vec2(0, this.gravity));
+        // this.world = planck.World(planck.Vec2(0, this.gravity));
+        this.world = planck.World({
+            gravity: planck.Vec2(0, this.gravity),
+            allowSleep: true
+        });
         currentScore = 0;
         bufferScore = 0;
         //init scale window
@@ -329,17 +334,45 @@ class PlayGame extends Phaser.Scene {
         })
             .setScale(0.25 * dpr).setDepth(0);
 
+        this.leaderboard = this.add.text((5 * dpr), (5 * dpr), 'LEADERBOARD', {
+            fill: '#0f0',
+            align: "center",
+            fontFamily: "Arial Black",
+            fontSize: 12 * dpr,
+        }).setDepth(2);
+        // this.scene.pause();
+        this.leaderboard.setInteractive();
+        this.leaderboard.on('pointerdown', () => {
+            this.scene.pause();
+            this.scene.launch("Leaderboard");
+            // if (!isPause) {
+            //     this.scene.pause();
+            //     isPause = true;
+            // } else {
+            //     this.scene.resume();
+            //     isPause = false;
+            // }
+        });
 
         this.textScore = this.make.text({
             x: this.halfWidth + (100 * dpr),
             y: 20 * dpr,
             text: "0",
+            padding: {
+                left: 5,
+                right: 5,
+                top: 5,
+                bottom: 5
+            },
             style: {
+                align: "center",
                 fontFamily: "Arial Black",
                 fontSize: 12 * dpr,
                 fill: "#FFFFFF"
             }
-        }).setDepth(2);
+        }).setDepth(2).setOrigin(0.5, 0.5);
+        this.scoreBox = this.add.graphics().setDepth(1.5);
+        this.scoreBox.fillStyle(0xFF0000, 0.8);
 
         this.createWall();
         this.createPaddle();
@@ -657,29 +690,29 @@ class PlayGame extends Phaser.Scene {
         }, this);
 
         // Testing with mouse clik for ball
-        let world = this;
-        let ball = this.ball;
-        let bodyA = this.ball.b;
-        let bodyB = this.ball.b;
-        let target = this.ball.b.getWorldCenter();
-        this.input.on('pointerdown', function (pointer) {
+        // let world = this;
+        // let ball = this.ball;
+        // let bodyA = this.ball.b;
+        // let bodyB = this.ball.b;
+        // let target = this.ball.b.getWorldCenter();
+        // this.input.on('pointerdown', function (pointer) {
 
-            let dummyBody = world.world.createBody();
-            // ball.ball2Bridge(planck.Vec2(pointer.x / world.scaleFactor, pointer.y / world.scaleFactor));
-            joint = world.world.createJoint(planck.MouseJoint({
-                maxForce: 1000,
-            }, dummyBody, bodyA, planck.Vec2.clone(planck.Vec2(pointer.x / world.scaleFactor, pointer.y / world.scaleFactor))));
-            // joint = world.world.createJoint(planck.PulleyJoint({
-            //     localAnchorB: planck.Vec2(pointer.x / world.scaleFactor, pointer.y / world.scaleFactor),
-            // }));
+        //     let dummyBody = world.world.createBody();
+        //     // ball.ball2Bridge(planck.Vec2(pointer.x / world.scaleFactor, pointer.y / world.scaleFactor));
+        //     joint = world.world.createJoint(planck.MouseJoint({
+        //         maxForce: 1000,
+        //     }, dummyBody, bodyA, planck.Vec2.clone(planck.Vec2(pointer.x / world.scaleFactor, pointer.y / world.scaleFactor))));
+        //     // joint = world.world.createJoint(planck.PulleyJoint({
+        //     //     localAnchorB: planck.Vec2(pointer.x / world.scaleFactor, pointer.y / world.scaleFactor),
+        //     // }));
 
-            console.log(dummyBody.getPosition());
-            // console.log(`${pointer.x}, ${pointer.y}`);
-        }, this);
+        //     console.log(dummyBody.getPosition());
+        //     // console.log(`${pointer.x}, ${pointer.y}`);
+        // }, this);
 
-        this.input.on('pointerup', function (pointer) {
-            world.world.destroyJoint(joint);
-        }, this);
+        // this.input.on('pointerup', function (pointer) {
+        //     world.world.destroyJoint(joint);
+        // }, this);
     }
 
     createContactEvents() {
@@ -1392,7 +1425,7 @@ class PlayGame extends Phaser.Scene {
         // }
     }
 
-    update() {
+    update(timestep, dt) {
         let spring = this.spring;
         let lengthSpring = -(this.triggerSpring.m_s1);
         let result = (((lengthSpring * 100) / 100) / 10) - 0.09;
@@ -1419,8 +1452,9 @@ class PlayGame extends Phaser.Scene {
         // console.log(currentScore);
         let scoreFormated = String(currentScore).replace(/(.)(?=(\d{3})+$)/g, '$1,')
         this.textScore.setText(scoreFormated);
+        this.scoreBox.fillRoundedRect(this.textScore.x - (this.textScore.width / 2), this.textScore.y - (this.textScore.height / 2), this.textScore.width, this.textScore.height, (7 * dpr));
         // advance the simulation by 1/20 seconds
-        this.world.step(1 / 16, 3, 3);
+        this.world.step(1 / dt, 3, 3);
         // this.world.step(1 / 16, 10, 8);
         // console.log(this.game.loop.delta);
         // console.log(this.game.loop.actualFps);
@@ -1429,10 +1463,10 @@ class PlayGame extends Phaser.Scene {
         this.world.clearForces();
 
         //for testing purpose
-        if (joint != null) {
-            var pointer = this.input.activePointer;
-            joint.setTarget(planck.Vec2(pointer.x / this.scaleFactor, pointer.y / this.scaleFactor));
-        }
+        // if (joint != null) {
+        //     var pointer = this.input.activePointer;
+        //     joint.setTarget(planck.Vec2(pointer.x / this.scaleFactor, pointer.y / this.scaleFactor));
+        // }
     }
 
     testtestbed() {
@@ -1450,6 +1484,49 @@ class PlayGame extends Phaser.Scene {
         });
     }
 
+}
+
+class Leaderboard extends Phaser.Scene {
+    constructor() {
+        super("Leaderboard");
+    }
+
+    init() {
+
+    }
+
+    preload() {
+        /*
+         *Load ASSET
+         */
+        this.load.path = "./asset/img/";
+        this.load.image("btnStart", "btnStart.png");
+        this.load.image("bgIntro", "bg_intro.jpg");
+        this.load.image("bgStart", "bg_start.png");
+    }
+
+    create() {
+        console.log("LEADERBOARD SCENE");
+        this.leaderboard = this.add.text(200, 500, 'PAUSED THE GAME', {
+            fill: '#0f0',
+            align: "center",
+            fontFamily: "Arial Black",
+            fontSize: 24,
+        }).setDepth(2);
+        // this.scene.pause();
+        this.leaderboard.setInteractive();
+        this.leaderboard.on('pointerdown', () => {
+            this.scene.resume("PlayGame");
+            this.scene.stop();
+            // if (!isPause) {
+            //     this.scene.pause();
+            //     isPause = true;
+            // } else {
+            //     this.scene.resume();
+            //     isPause = false;
+            // }
+        });
+    }
 }
 
 class Circle extends Phaser.GameObjects.Sprite {
