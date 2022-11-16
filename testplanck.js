@@ -24,7 +24,7 @@ const PADDLE_PULL = 0.005;
 const MAX_VELOCITY = 50;
 
 // shared variables
-let dpr;
+let dpr, scaleSprite;
 let currentScore, highScore, bufferScore;
 let fieldBumper, fieldBumper2;
 let engine, world, render, pinball, stopperGroup;
@@ -33,9 +33,12 @@ let rightPaddle, rightUpStopper, rightDownStopper, isRightPaddleUp;
 let isFalling = false;
 let topLedOne = false, topLedTwo = false, topLedThree = false;
 let leftLedOne = false, leftLedTwo = false, leftLedThree = false;
+let puckOne = false, puckTwo = false, puckThree = false;
+let t1 = false, t2 = false, t3 = false, t4 = false, t5 = false, t6 = false, t7 = false;
 let logoLed = false;
 let centerLed = false;
 let joint = null;
+let isBonus = false;
 const delta = 1000 / 60;
 const subSteps = 3;
 const subDelta = delta / subSteps;
@@ -109,6 +112,11 @@ class PlayGame extends Phaser.Scene {
         super("PlayGame");
     }
 
+    // scaling sprite atau lainnya dengan mempertahankan ratio pixel
+    scaleWithRatioPixel(offset) {
+        return ((1 * window.devicePixelRatio) / 4) - offset;
+    }
+
     init() {
         // Init World
         this.gravity = 3; // 3 is normal
@@ -117,7 +125,13 @@ class PlayGame extends Phaser.Scene {
         bufferScore = 0;
         //init scale window
         dpr = window.devicePixelRatio;
+        scaleSprite = this.scaleWithRatioPixel(0);
 
+        window.mobileCheck = function () {
+            let check = false;
+            (function (a) { if (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0, 4))) check = true; })(navigator.userAgent || navigator.vendor || window.opera);
+            return check;
+        };
         // init canvas size
         this.gameWidth = this.sys.game.scale.width
         this.gameHeight = this.sys.game.scale.height
@@ -131,6 +145,10 @@ class PlayGame extends Phaser.Scene {
         this.scaleFactor = 30;
 
         this.bodies = [];
+
+        if (!window.mobileCheck()) {
+
+        }
     }
 
     preload() {
@@ -212,8 +230,12 @@ class PlayGame extends Phaser.Scene {
         this.load.image("wall3", "wall3.png");
         this.load.image("leftA", "left_a.png");
         this.load.image("rightA", "right_a.png");
+        this.load.image("leftAhit", "left_a_hit.png");
+        this.load.image("rightAhit", "right_a_hit.png");
         this.load.image("leftB", "left_b.png");
         this.load.image("rightB", "right_b.png");
+        this.load.image("leftBhit", "left_b_hit.png");
+        this.load.image("rightBhit", "right_b_hit.png");
         this.load.image("leftC", "left_c.png");
         this.load.image("rightC", "right_c.png");
         this.load.image("leftD", "left_d.png");
@@ -223,6 +245,15 @@ class PlayGame extends Phaser.Scene {
         this.load.image("bumper100", "bumper_100.png");
         this.load.image("bumper200", "bumper_200.png");
         this.load.image("bumper500", "bumper_500.png");
+        this.load.image("bumper100hit", "bumper_100_hit.png");
+        this.load.image("bumper200hit", "bumper_200_hit.png");
+        this.load.image("bumper500hit", "bumper_500_hit.png");
+        this.load.image("bumper5k", "bumper_5k.png");
+        this.load.image("bumper10k", "bumper_10k.png");
+        this.load.image("bumper20k", "bumper_20k.png");
+        this.load.image("bumper5khit", "bumper_5k_hit.png");
+        this.load.image("bumper10khit", "bumper_10k_hit.png");
+        this.load.image("bumper20khit", "bumper_20k_hit.png");
         this.load.image("puck", "puck.png");
         this.load.image("appronsLeft", "approns_left.png");
         this.load.image("appronsRight", "approns_right.png");
@@ -240,6 +271,8 @@ class PlayGame extends Phaser.Scene {
         this.load.image("hole", "hole.png");
         this.load.image("logo", "logo.png");
         this.load.image("logo2", "logo2.png");
+        this.load.image("triangleOn", "triangle_on.png");
+        this.load.image("triangleOff", "triangle_off.png");
         this.load.image("puckLedOn", "puck_led_on.png");
         this.load.image("puckLedOff", "puck_led_off.png");
         this.load.image("arrowLedBridge1Off", "arrow_led_bridge1.png");
@@ -264,11 +297,6 @@ class PlayGame extends Phaser.Scene {
             'Kanit-Black.png',
             'Kanit-Black.xml'
         );
-    }
-
-    // scaling sprite atau lainnya dengan mempertahankan ratio pixel
-    scaleWithRatioPixel(offset) {
-        return ((1 * window.devicePixelRatio) / 4) - offset;
     }
 
     create() {
@@ -338,10 +366,10 @@ class PlayGame extends Phaser.Scene {
     }
 
     createLabelScore() {
-        this.add.bitmapText(this.halfWidth - (90 * dpr), this.halfHeight + (150 * dpr), "kanitBlack", "100", 30).setAngle(90);
-        this.add.bitmapText(this.halfWidth + (95 * dpr), this.halfHeight + (150 * dpr), "kanitBlack", "100", 30).setAngle(90);
-        this.add.bitmapText(this.halfWidth - (120 * dpr), this.halfHeight + (250 * dpr), "kanitBlack", "500", 30).setAngle(90);
-        this.add.bitmapText(this.halfWidth + (125 * dpr), this.halfHeight + (250 * dpr), "kanitBlack", "500", 30).setAngle(90);
+        this.add.bitmapText(this.halfWidth - (90 * dpr), this.halfHeight + (150 * dpr), "kanitBlack", "100", 20 + (20 * scaleSprite)).setAngle(90);
+        this.add.bitmapText(this.halfWidth + (95 * dpr), this.halfHeight + (150 * dpr), "kanitBlack", "100", 20 + (20 * scaleSprite)).setAngle(90);
+        this.add.bitmapText(this.halfWidth - (120 * dpr), this.halfHeight + (250 * dpr), "kanitBlack", "500", 20 + (20 * scaleSprite)).setAngle(90);
+        this.add.bitmapText(this.halfWidth + (125 * dpr), this.halfHeight + (250 * dpr), "kanitBlack", "500", 20 + (20 * scaleSprite)).setAngle(90);
     }
 
     createWall() {
@@ -370,10 +398,10 @@ class PlayGame extends Phaser.Scene {
         // bottom wall
         new ChainShape(this, (70 * dpr), this.halfHeight + (275 * dpr), "appronsLeft", this.shapes.appronsLeft.fixtures[0].vertices, false, true, false, 0.5, "appronsLeft", OBSTACLE_GROUP, 0.25, 1);
         new ChainShape(this, this.halfWidth + (75 * dpr), this.halfHeight + (275 * dpr), "appronsRight", this.shapes.appronsRight.fixtures[0].vertices, false, true, false, 0.5, "appronsRight", OBSTACLE_GROUP, 0.25, 1);
-        new OtherBumper(this, this.halfWidth - (20 * dpr), this.halfHeight + (105 * dpr), "leftA", this.shapes.leftA.fixtures[0].vertices, false, true, 0.5, "leftA", OBSTACLE_GROUP, 0.5, 1);
-        new OtherBumper(this, this.halfWidth + (15 * dpr), this.halfHeight + (105 * dpr), "rightA", this.shapes.rightA.fixtures[0].vertices, false, true, 0.5, "rightA", OBSTACLE_GROUP, 0.5, 1);
-        new OtherBumper(this, this.halfWidth - (70 * dpr), this.halfHeight + (172 * dpr), "leftB", this.shapes.leftB.fixtures[0].vertices, false, true, 0.5, "leftB", OBSTACLE_GROUP, 0.7, 1);
-        new OtherBumper(this, this.halfWidth + (60 * dpr), this.halfHeight + (172 * dpr), "rightB", this.shapes.rightB.fixtures[0].vertices, false, true, 0.5, "rightB", OBSTACLE_GROUP, 0.7, 1);
+        this.bumperLeftA = new OtherBumper(this, this.halfWidth - (20 * dpr), this.halfHeight + (105 * dpr), "leftA", this.shapes.leftA.fixtures[0].vertices, false, true, 0.5, "leftA", OBSTACLE_GROUP, 0.5, 1);
+        this.bumperRightA = new OtherBumper(this, this.halfWidth + (15 * dpr), this.halfHeight + (105 * dpr), "rightA", this.shapes.rightA.fixtures[0].vertices, false, true, 0.5, "rightA", OBSTACLE_GROUP, 0.5, 1);
+        this.bumperLeftB = new OtherBumper(this, this.halfWidth - (70 * dpr), this.halfHeight + (172 * dpr), "leftB", this.shapes.leftB.fixtures[0].vertices, false, true, 0.5, "leftB", OBSTACLE_GROUP, 0.7, 1);
+        this.bumperRightB = new OtherBumper(this, this.halfWidth + (60 * dpr), this.halfHeight + (172 * dpr), "rightB", this.shapes.rightB.fixtures[0].vertices, false, true, 0.5, "rightB", OBSTACLE_GROUP, 0.7, 1);
     }
 
     createStopper() {
@@ -477,8 +505,8 @@ class PlayGame extends Phaser.Scene {
 
         //Puck Handler
         // Temp just get body not important
-        this.puckHandler = new Rectangle(this, this.halfWidth + (98 * dpr), this.halfHeight - (152 * dpr), "", (35 * dpr), (5 * dpr), 0.55, false, true, true, "puckHandler", null, 0, 0);
-        this.puckHandler2 = new Rectangle(this, this.halfWidth + (98 * dpr), this.halfHeight - (152 * dpr), "", (35 * dpr), (5 * dpr), 0.55, false, true, true, "puckHandler2", 2, 0, 0);
+        this.puckHandler = new Rectangle(this, this.halfWidth + (98 * dpr), this.halfHeight - (149 * dpr), "", (35 * dpr), (5 * dpr), 0.55, false, true, true, "puckHandler", null, 0, 0);
+        this.puckHandler2 = new Rectangle(this, this.halfWidth + (98 * dpr), this.halfHeight - (149 * dpr), "", (35 * dpr), (5 * dpr), 0.55, false, true, true, "puckHandler2", 2, 0, 0);
 
         //PrismaticJoint Puck
         var worldAxis = planck.Vec2(1, -1.25);
@@ -533,6 +561,22 @@ class PlayGame extends Phaser.Scene {
         this.leftLedOne = new Circle(this, this.halfWidth - (98 * dpr), this.halfHeight + (50 * dpr), "topLedOff", (6 * dpr), false, false, true, "leftLedOne", null, 0);
         this.leftLedTwo = new Circle(this, this.halfWidth - (108 * dpr), this.halfHeight + (65 * dpr), "topLedOff", (6 * dpr), false, false, true, "leftLedTwo", null, 0);
         this.leftLedThree = new Circle(this, this.halfWidth - (118 * dpr), this.halfHeight + (80 * dpr), "topLedOff", (6 * dpr), false, false, true, "leftLedThree", null, 0);
+
+        // Triangle Way LED
+        this.tri1 = new Rectangle(this, this.halfWidth - (85 * dpr), this.halfHeight - (224 * dpr), "triangleOff", (15 * dpr), (15 * dpr), 0.55, false, false, true, "t1", null, 0, 0);
+        this.tri1.b.setAngle(0.80);
+        this.tri2 = new Rectangle(this, this.halfWidth - (102 * dpr), this.halfHeight - (209 * dpr), "triangleOff", (15 * dpr), (15 * dpr), 0.55, false, false, true, "t2", null, 0, 0);
+        this.tri2.b.setAngle(0.70);
+        this.tri3 = new Rectangle(this, this.halfWidth - (118 * dpr), this.halfHeight - (190 * dpr), "triangleOff", (15 * dpr), (15 * dpr), 0.55, false, false, true, "t3", null, 0, 0);
+        this.tri3.b.setAngle(0.60);
+        this.tri4 = new Rectangle(this, this.halfWidth - (128 * dpr), this.halfHeight - (168 * dpr), "triangleOff", (15 * dpr), (15 * dpr), 0.55, false, false, true, "t4", null, 0, 0);
+        this.tri4.b.setAngle(0.45);
+        this.tri5 = new Rectangle(this, this.halfWidth - (130 * dpr), this.halfHeight - (145 * dpr), "triangleOff", (15 * dpr), (15 * dpr), 0.55, false, false, true, "t5", null, 0, 0);
+        this.tri5.b.setAngle(0);
+        this.tri6 = new Rectangle(this, this.halfWidth - (128 * dpr), this.halfHeight - (125 * dpr), "triangleOff", (15 * dpr), (15 * dpr), 0.55, false, false, true, "t6", null, 0, 0);
+        this.tri6.b.setAngle(-0.30);
+        this.tri7 = new Rectangle(this, this.halfWidth - (122 * dpr), this.halfHeight - (105 * dpr), "triangleOff", (15 * dpr), (15 * dpr), 0.55, false, false, true, "t7", null, 0, 0);
+        this.tri7.b.setAngle(-0.45);
 
         // Logo Led
         // this.logoLed = new ChainShape(this, this.halfWidth - (2 * dpr), this.halfHeight + (50 * dpr), "logo2", this.shapes.logoLed.fixtures[0].vertices, false, false, true, 0.5, "logoLed", 0);
@@ -673,19 +717,121 @@ class PlayGame extends Phaser.Scene {
                 // balls contact with bumper for getting score
                 if (labelBodyA == "bumper100" && labelBodyB == "ballss") {
                     if (dataBodyA.isScore) {
-                        bufferScore += 100
-                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                        if (!isBonus) {
+                            bufferScore += 100
+                            ww.bumper100.setTexture("bumper100hit");
+                            bodyA.setUserData({ label: labelBodyA, isScore: false });
+                        } else {
+                            bufferScore += 5000
+                            ww.bumper100.setTexture("bumper5khit");
+                            bodyA.setUserData({ label: labelBodyA, isScore: false });
+                        }
                     }
                 }
                 if (labelBodyA == "bumper200" && labelBodyB == "ballss") {
                     if (dataBodyA.isScore) {
-                        bufferScore += 200
-                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                        if (!isBonus) {
+                            bufferScore += 200
+                            ww.bumper200.setTexture("bumper200hit");
+                            bodyA.setUserData({ label: labelBodyA, isScore: false });
+                        } else {
+                            bufferScore += 10000
+                            ww.bumper200.setTexture("bumper10khit");
+                            bodyA.setUserData({ label: labelBodyA, isScore: false });
+                        }
                     }
                 }
                 if (labelBodyA == "bumper500" && labelBodyB == "ballss") {
                     if (dataBodyA.isScore) {
-                        bufferScore += 500;
+                        if (!isBonus) {
+                            bufferScore += 500;
+                            ww.bumper500.setTexture("bumper500hit");
+                            bodyA.setUserData({ label: labelBodyA, isScore: false });
+                        } else {
+                            bufferScore += 20000
+                            ww.bumper500.setTexture("bumper20khit");
+                            bodyA.setUserData({ label: labelBodyA, isScore: false });
+                        }
+                    }
+                }
+
+
+                if (labelBodyA == "leftA" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        bufferScore += 100;
+                        ww.bumperLeftA.setTexture("leftAhit");
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "rightA" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        bufferScore += 100;
+                        ww.bumperRightA.setTexture("rightAhit");
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "leftB" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        bufferScore += 100;
+                        ww.bumperLeftB.setTexture("leftBhit");
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "rightB" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        bufferScore += 100;
+                        ww.bumperRightB.setTexture("rightBhit");
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+
+                // Triangle Ways LED
+                if (labelBodyA == "t1" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        t1 = true;
+                        ww.tri1.setTexture("triangleOn");
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "t2" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        t2 = true;
+                        ww.tri2.setTexture("triangleOn");
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "t3" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        t3 = true;
+                        ww.tri3.setTexture("triangleOn");
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "t4" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        t4 = true;
+                        ww.tri4.setTexture("triangleOn");
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "t5" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        t5 = true;
+                        ww.tri5.setTexture("triangleOn");
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "t6" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        t6 = true;
+                        ww.tri6.setTexture("triangleOn");
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
+                    }
+                }
+                if (labelBodyA == "t7" && labelBodyB == "ballss") {
+                    if (dataBodyA.isScore) {
+                        t7 = true;
+                        ww.tri7.setTexture("triangleOn");
                         bodyA.setUserData({ label: labelBodyA, isScore: false });
                     }
                 }
@@ -906,6 +1052,10 @@ class PlayGame extends Phaser.Scene {
                     ww.enterBonus2.setAlpha(1);
                     ww.fieldBonus.setAlpha(0);
                     ww.fieldBonus.b.setActive(true);
+                    isBonus = true;
+                    ww.bumper100.setTexture("bumper5k");
+                    ww.bumper200.setTexture("bumper10k");
+                    ww.bumper500.setTexture("bumper20k");
 
                     setTimeout(function () {
                         ww.fieldBonus.b.setActive(false);
@@ -913,6 +1063,10 @@ class PlayGame extends Phaser.Scene {
                         ww.enterBonus2.setAlpha(0);
                         ww.fieldBonus.setAlpha(1);
                         ww.bonus.setAlpha(0);
+                        ww.bumper100.setTexture("bumper100");
+                        ww.bumper200.setTexture("bumper200");
+                        ww.bumper500.setTexture("bumper500");
+                        isBonus = false;
                     }, 5000);
                 }
 
@@ -952,23 +1106,23 @@ class PlayGame extends Phaser.Scene {
                 // Puck contact with puckHandler2
                 if (labelBodyA == "puck1" && labelBodyB == "puckHandler2") {
                     if (dataBodyA.isScore) {
+                        puckOne = true;
                         ww.puckLed1.setTexture("puckLedOn");
                         bodyA.setUserData({ label: labelBodyA, isScore: false });
                     }
                 }
                 if (labelBodyA == "puck2" && labelBodyB == "puckHandler2") {
                     if (dataBodyA.isScore) {
+                        puckTwo = true;
                         ww.puckLed2.setTexture("puckLedOn");
                         bodyA.setUserData({ label: labelBodyA, isScore: false });
                     }
                 }
                 if (labelBodyA == "puck3" && labelBodyB == "puckHandler2") {
                     if (dataBodyA.isScore) {
+                        puckThree = true;
                         ww.puckLed3.setTexture("puckLedOn");
-                        setTimeout(function () {
-                            bodyA.setUserData({ label: labelBodyA, isScore: false });
-                            console.log(bodyA);
-                        }, 1);
+                        bodyA.setUserData({ label: labelBodyA, isScore: false });
                     }
                 }
             }
@@ -986,16 +1140,56 @@ class PlayGame extends Phaser.Scene {
                 // balls contact with bumper for getting score
                 if (labelBodyA == "bumper100" && labelBodyB == "ballss") {
                     if (!dataBodyA.isScore) {
+                        if (!isBonus) {
+                            ww.bumper100.setTexture("bumper100");
+                        } else {
+                            ww.bumper100.setTexture("bumper5k");
+                        }
                         bodyA.setUserData({ label: labelBodyA, isScore: true });
                     }
                 }
                 if (labelBodyA == "bumper200" && labelBodyB == "ballss") {
                     if (!dataBodyA.isScore) {
+                        if (!isBonus) {
+                            ww.bumper200.setTexture("bumper200");
+                        } else {
+                            ww.bumper200.setTexture("bumper10k");
+                        }
                         bodyA.setUserData({ label: labelBodyA, isScore: true });
                     }
                 }
                 if (labelBodyA == "bumper500" && labelBodyB == "ballss") {
                     if (!dataBodyA.isScore) {
+                        if (!isBonus) {
+                            ww.bumper500.setTexture("bumper500");
+                        } else {
+                            ww.bumper500.setTexture("bumper20k");
+                        }
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+
+                if (labelBodyA == "leftA" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        ww.bumperLeftA.setTexture("leftA");
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+                if (labelBodyA == "rightA" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        ww.bumperRightA.setTexture("rightA");
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+                if (labelBodyA == "leftB" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        ww.bumperLeftB.setTexture("leftB");
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+                if (labelBodyA == "rightB" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        ww.bumperRightB.setTexture("rightB");
                         bodyA.setUserData({ label: labelBodyA, isScore: true });
                     }
                 }
@@ -1009,6 +1203,46 @@ class PlayGame extends Phaser.Scene {
                 if (labelBodyA == "stopperRight" && labelBodyB == "ballss") {
                     if (!dataBodyA.isScore) {
                         bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+
+
+                // Triangle Ways LED
+                if (labelBodyA == "t1" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                        ww.checkTopLed();
+                    }
+                }
+                if (labelBodyA == "t2" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+                if (labelBodyA == "t3" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+                if (labelBodyA == "t4" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+                if (labelBodyA == "t5" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+                if (labelBodyA == "t6" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                    }
+                }
+                if (labelBodyA == "t7" && labelBodyB == "ballss") {
+                    if (!dataBodyA.isScore) {
+                        bodyA.setUserData({ label: labelBodyA, isScore: true });
+                        ww.checkTopLed();
                     }
                 }
 
@@ -1054,6 +1288,7 @@ class PlayGame extends Phaser.Scene {
     }
 
     checkTopLed() {
+        let ww = this;
         let ledOne = this.topLedOne;
         let ledTwo = this.topLedTwo;
         let ledThree = this.topLedThree;
@@ -1076,6 +1311,55 @@ class PlayGame extends Phaser.Scene {
             setTimeout(function () {
                 ledThree.setTexture("topLedOff");
             }, 600);
+        }
+
+        if (puckOne && puckTwo && puckThree) {
+            puckOne = false;
+            puckTwo = false;
+            puckThree = false;
+            setTimeout(function () {
+                ww.puckLed1.setTexture("puckLedOff");
+                bufferScore += 5000;
+            }, 100);
+            setTimeout(function () {
+                ww.puckLed2.setTexture("puckLedOff");
+            }, 300);
+            setTimeout(function () {
+                ww.puckLed3.setTexture("puckLedOff");
+            }, 600);
+        }
+
+        if (t1 && t2 && t3 && t4 && t5 && t6 && t7) {
+            t1 = false;
+            t2 = false;
+            t3 = false;
+            t4 = false;
+            t5 = false;
+            t6 = false;
+            t7 = false;
+
+            setTimeout(function () {
+                ww.tri1.setTexture("triangleOff");
+                bufferScore += 1000;
+            }, 100);
+            setTimeout(function () {
+                ww.tri2.setTexture("triangleOff");
+            }, 300);
+            setTimeout(function () {
+                ww.tri3.setTexture("triangleOff");
+            }, 600);
+            setTimeout(function () {
+                ww.tri4.setTexture("triangleOff");
+            }, 900);
+            setTimeout(function () {
+                ww.tri5.setTexture("triangleOff");
+            }, 1200);
+            setTimeout(function () {
+                ww.tri6.setTexture("triangleOff");
+            }, 1500);
+            setTimeout(function () {
+                ww.tri7.setTexture("triangleOff");
+            }, 1800);
         }
 
         if (leftLedOne && leftLedTwo && leftLedThree) {
@@ -1192,6 +1476,7 @@ class Circle extends Phaser.GameObjects.Sprite {
         }
         this.displayWidth = radius * 2;
         this.displayHeight = radius * 2;
+        // this.scale = scaleSprite;
         this.scene = scene;
         this.isDynamic = isDynamic;
         this.isFixed = isFixed;
@@ -1319,6 +1604,7 @@ class Bumper extends Phaser.GameObjects.Sprite {
         }
         this.displayWidth = radius * 2;
         this.displayHeight = radius * 2;
+        // this.scale = scaleSprite;
         this.scene = scene;
         this.isDynamic = isDynamic;
         this.isFixed = isFixed;
@@ -1429,7 +1715,7 @@ class Rectangle extends Phaser.GameObjects.Sprite {
         }
         this.displayWidth = width * 2;
         this.displayHeight = height * 2;
-        this.scale = scale;
+        this.scale = scaleSprite;
         this.scene = scene;
         this.isDynamic = isDynamic;
         this.isFixed = isFixed;
@@ -1603,7 +1889,7 @@ class Poly extends Phaser.GameObjects.Sprite {
         // console.log(`height : ${this.height}`);
         // console.log(`height2 : ${height}`);
         // const assetsDPR = window.devicePixelRatio;
-        this.scale = scale;
+        this.scale = scaleSprite;
         // this.setDisplaySize(width, height);
         // this.setScale(assetsDPR / 10, assetsDPR / 10);
 
@@ -1743,7 +2029,7 @@ class ChainShape extends Phaser.GameObjects.Sprite {
         // this.setTexture(rnd);
         this.displayWidth = width / (scale + 0.4);
         this.displayHeight = height;
-        this.scale = scale
+        this.scale = scaleSprite;
 
         // this.displayOriginY = 0.5;
         // this.setDisplayOrigin(((width / 2) / scene.scaleFactor) * scale, ((height / 2) / scene.scaleFactor) * scale);
@@ -1860,7 +2146,7 @@ class OtherBumper extends Phaser.GameObjects.Sprite {
         // this.setTexture(rnd);
         this.displayWidth = width / (scale + 0.4);
         this.displayHeight = height;
-        this.scale = scale
+        // this.scale = scaleSprite;
 
         // this.displayOriginY = 0.5;
         // this.setDisplayOrigin(((width / 2) / scene.scaleFactor) * scale, ((height / 2) / scene.scaleFactor) * scale);
