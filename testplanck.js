@@ -1,3 +1,7 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-analytics.js";
+import { getDatabase, ref, child, get } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-database.js";
+import { getFirestore, query, collection, doc, getDoc, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
 const PATHS = {
     DOME: '0 0 0 250 19 250 20 231.9 25.7 196.1 36.9 161.7 53.3 129.5 74.6 100.2 100.2 74.6 129.5 53.3 161.7 36.9 196.1 25.7 231.9 20 268.1 20 303.9 25.7 338.3 36.9 370.5 53.3 399.8 74.6 425.4 100.2 446.7 129.5 463.1 161.7 474.3 196.1 480 231.9 480 250 500 250 500 0 0 0',
     // DROP_LEFT: '0 0 20 0 70 100 20 150 0 150 0 0',
@@ -40,6 +44,7 @@ let logoLed = false;
 let centerLed = false;
 let joint = null;
 let isBonus = false;
+let lastScoreWidth = 0;
 const delta = 1000 / 60;
 const subSteps = 3;
 const subDelta = delta / subSteps;
@@ -96,7 +101,7 @@ window.onload = function () {
         // },
         scene: [PlayGame, Leaderboard]
     };
-    game = new Phaser.Game(gameConfig);
+    var game = new Phaser.Game(gameConfig);
     window.focus();
 
     // (function run() {
@@ -493,8 +498,8 @@ class PlayGame extends Phaser.Scene {
             points: toggleRightPoints
         } = getPoints(this.shapes, "toggle_right");
 
-        this.paddleWall1 = new ChainShape(this, this.halfWidth - (91 * dpr), this.halfHeight + (186 * dpr), "leftC", this.shapes.paddlewall1.fixtures[0].vertices, false, true, false, 0.45, "leftC", OBSTACLE_GROUP, 0.3, 1);
-        this.paddleWall1 = new ChainShape(this, this.halfWidth + (80 * dpr), this.halfHeight + (186 * dpr), "rightC", this.shapes.paddlewall2.fixtures[0].vertices, false, true, false, 0.45, "rightC", OBSTACLE_GROUP, 0.3, 1);
+        this.paddleWall1 = new ChainShape(this, this.halfWidth - (91 * dpr), this.halfHeight + (186 * dpr), "leftC", this.shapes.left_c.fixtures[0].vertices, false, true, false, 0.45, "leftC", OBSTACLE_GROUP, 0.3, 1);
+        this.paddleWall1 = new ChainShape(this, this.halfWidth + (80 * dpr), this.halfHeight + (186 * dpr), "rightC", this.shapes.right_c.fixtures[0].vertices, false, true, false, 0.45, "rightC", OBSTACLE_GROUP, 0.3, 1);
         this.circle2 = new Circle(this, this.halfWidth - (63 * dpr), this.halfHeight + (233.5 * dpr), "", (6 * dpr), false, false, false, OBSTACLE_GROUP, 1);
         this.circle3 = new Circle(this, this.halfWidth + (56 * dpr), this.halfHeight + (234 * dpr), "", (6 * dpr), false, false, false, OBSTACLE_GROUP, 1);
         this.flipper = new Poly(this, this.halfWidth - (43 * dpr), this.halfHeight + (243.5 * dpr), "toggleLeft", toggleLeftPoints, true, false, 0.5, "leftPaddle", OBSTACLE_GROUP, 1);
@@ -648,6 +653,10 @@ class PlayGame extends Phaser.Scene {
 
     createTrigger() {
         this.circleTriggerClose = new Circle(this, this.halfWidth + (110 * dpr), this.halfHeight - (220 * dpr), "", (12 * dpr), false, false, true, "triggerClose");
+        this.circleTriggerCloseLeft = new Circle(this, this.halfWidth - (127 * dpr), this.halfHeight + (230 * dpr), "", (12 * dpr), false, false, true, "triggerCloseLeft");
+        this.circleTriggerCloseRight = new Circle(this, this.halfWidth + (117 * dpr), this.halfHeight + (230 * dpr), "", (12 * dpr), false, false, true, "triggerCloseRight");
+        this.circleTriggerCloseLeft.b.setActive(false);
+        this.circleTriggerCloseRight.b.setActive(false);
     }
 
     createControlKey() {
@@ -688,6 +697,44 @@ class PlayGame extends Phaser.Scene {
         this.rightBtn.on("up", function () {
             rightPaddle.setMotorSpeed(-20);
         }, this);
+
+        // make controller virtual
+        let style = {
+            fontFamily: "Arial Black",
+            fontSize: 8 * window.devicePixelRatio,
+            fill: "#FFFFFF"
+        }
+        let leftJoy = this.add.text((this.gameWidth / 2) - (110 * dpr), (this.gameHeight / 2) + (285 * dpr), 'LEFT', style)
+            .setDepth(2)
+            .setInteractive()
+            .on('pointerdown', function (e) {
+                leftPaddle.setMotorSpeed(-20);
+            })
+            .on('pointerup', function (e) {
+                leftPaddle.setMotorSpeed(20);
+            });
+
+        let rightJoy = this.add.text((this.gameWidth / 2) + (75 * dpr), (this.gameHeight / 2) + (285 * dpr), 'RIGHT', style)
+            .setDepth(2)
+            .setInteractive()
+            .on('pointerdown', function (e) {
+                rightPaddle.setMotorSpeed(20);
+            })
+            .on('pointerup', function (e) {
+                rightPaddle.setMotorSpeed(-20);
+            });
+
+        let pullJoy = this.add.text((this.gameWidth / 2) + (135 * dpr), (this.gameHeight / 2) + (285 * dpr), 'PULL', style)
+            .setDepth(2)
+            .setInteractive()
+            .on('pointerdown', function (e) {
+                btnSpaceHold = true;
+                triggerPer.setMaxMotorForce(-5);
+            })
+            .on('pointerup', function (e) {
+                btnSpaceHold = false;
+                triggerPer.setMaxMotorForce(-200);
+            });
 
         // Testing with mouse clik for ball
         // let world = this;
@@ -885,16 +932,12 @@ class PlayGame extends Phaser.Scene {
                         ball.ball2Bridge(position);
                         // ball.stopper();
                         ball.b.setActive(false);
+                        ww.circleTriggerCloseLeft.b.setActive(true);
                     }, 1);
                     setTimeout(function () {
                         ball.b.setActive(true);
                         ball.launchBall();
                     }, 2500);
-                    setTimeout(function () {
-                        ww.closeLeft.b.setActive(true);
-                        ww.closeLeft.setAlpha(1);
-                        // ww.createLeftStop();
-                    }, 3000);
                 }
                 if (labelBodyA == "stopperRight" && labelBodyB == "ballss") {
                     let scale = ww.scaleFactor;
@@ -911,16 +954,12 @@ class PlayGame extends Phaser.Scene {
                         ball.ball2Bridge(position);
                         // ball.stopper();
                         ball.b.setActive(false);
+                        ww.circleTriggerCloseRight.b.setActive(true);
                     }, 1);
                     setTimeout(function () {
                         ball.b.setActive(true);
                         ball.launchBall();
                     }, 2500);
-                    setTimeout(function () {
-                        ww.closeRight.b.setActive(true);
-                        ww.closeRight.setAlpha(1);
-                        // ww.createRigthStop();
-                    }, 3000);
                 }
                 if (labelBodyA == "ballss" && labelBodyB == "triggerClose") {
                     console.log("boom");
@@ -1239,6 +1278,22 @@ class PlayGame extends Phaser.Scene {
                     }
                 }
 
+                // Ball contact with stopper and close the field Trigger
+                if (labelBodyA == "triggerCloseLeft" && labelBodyB == "ballss") {
+                    setTimeout(function () {
+                        ww.closeLeft.b.setActive(true);
+                        ww.closeLeft.setAlpha(1);
+                        // ww.createLeftStop();
+                    }, 1);
+                }
+                if (labelBodyA == "triggerCloseRight" && labelBodyB == "ballss") {
+                    setTimeout(function () {
+                        ww.closeRight.b.setActive(true);
+                        ww.closeRight.setAlpha(1);
+                        // ww.createRigthStop();
+                    }, 1);
+                }
+
 
                 // Triangle Ways LED
                 if (labelBodyA == "t1" && labelBodyB == "ballss") {
@@ -1425,7 +1480,7 @@ class PlayGame extends Phaser.Scene {
         // }
     }
 
-    update(timestep, dt) {
+    update() {
         let spring = this.spring;
         let lengthSpring = -(this.triggerSpring.m_s1);
         let result = (((lengthSpring * 100) / 100) / 10) - 0.09;
@@ -1444,17 +1499,29 @@ class PlayGame extends Phaser.Scene {
         if (bufferScore > 0 && bufferScore < 1000) {
             currentScore += 100;
             bufferScore -= 100;
-        } else if (bufferScore > 1000) {
+        } else if (bufferScore >= 1000 && bufferScore < 10000) {
             currentScore += 1000;
             bufferScore -= 1000;
+        } else if (bufferScore >= 10000 && bufferScore < 100000) {
+            currentScore += 10000;
+            bufferScore -= 10000;
+        } else if (bufferScore >= 100000) {
+            currentScore += 100000;
+            bufferScore -= 100000;
         }
 
         // console.log(currentScore);
         let scoreFormated = String(currentScore).replace(/(.)(?=(\d{3})+$)/g, '$1,')
-        this.textScore.setText(scoreFormated);
-        this.scoreBox.fillRoundedRect(this.textScore.x - (this.textScore.width / 2), this.textScore.y - (this.textScore.height / 2), this.textScore.width, this.textScore.height, (7 * dpr));
+        if (this.textScore.text != scoreFormated) {
+            this.textScore.setText(scoreFormated);
+        }
+
+        if (this.textScore.width != lastScoreWidth) {
+            this.scoreBox.fillRoundedRect(this.textScore.x - (this.textScore.width / 2), this.textScore.y - (this.textScore.height / 2), this.textScore.width, this.textScore.height, (7 * dpr));
+            lastScoreWidth = this.textScore.width;
+        }
         // advance the simulation by 1/20 seconds
-        this.world.step(1 / dt, 3, 3);
+        this.world.step(1 / 16, 3, 3);
         // this.world.step(1 / 16, 10, 8);
         // console.log(this.game.loop.delta);
         // console.log(this.game.loop.actualFps);
@@ -1492,7 +1559,11 @@ class Leaderboard extends Phaser.Scene {
     }
 
     init() {
-
+        // init canvas size
+        this.gameWidth = this.sys.game.scale.width
+        this.gameHeight = this.sys.game.scale.height
+        this.halfWidth = this.gameWidth / 2;
+        this.halfHeight = this.gameHeight / 2;
     }
 
     preload() {
@@ -1503,29 +1574,130 @@ class Leaderboard extends Phaser.Scene {
         this.load.image("btnStart", "btnStart.png");
         this.load.image("bgIntro", "bg_intro.jpg");
         this.load.image("bgStart", "bg_start.png");
+        this.load.image("icResume", "ic_resume.png");
+        this.load.image("icOther", "ic_other_game.png");
+        this.load.image("fieldLeaderboard", "field_leaderboard.png");
     }
 
-    create() {
-        console.log("LEADERBOARD SCENE");
-        this.leaderboard = this.add.text(200, 500, 'PAUSED THE GAME', {
-            fill: '#0f0',
-            align: "center",
-            fontFamily: "Arial Black",
-            fontSize: 24,
-        }).setDepth(2);
-        // this.scene.pause();
-        this.leaderboard.setInteractive();
-        this.leaderboard.on('pointerdown', () => {
-            this.scene.resume("PlayGame");
-            this.scene.stop();
-            // if (!isPause) {
-            //     this.scene.pause();
-            //     isPause = true;
-            // } else {
-            //     this.scene.resume();
-            //     isPause = false;
-            // }
+    async create() {
+        this.add.graphics().setDepth(1).fillStyle(0x000000, 0.8).fillRect(0, 0, this.gameWidth, this.gameHeight);
+        this.fieldLeaderboard = this.add.image(this.halfWidth, this.halfHeight, "fieldLeaderboard")
+            .setDepth(2)
+            .setScale(0.5)
+            .setOrigin(0.5, 0.5);
+        this.resume = this.add.sprite(this.halfWidth, this.fieldLeaderboard.y + (this.fieldLeaderboard.displayHeight / 1.7), "icResume")
+            .setDepth(2)
+            .setScale(0.5)
+            .setOrigin(0.5, 0.5)
+            .setInteractive()
+            .on('pointerdown', () => {
+                this.scene.resume("PlayGame");
+                this.scene.stop();
+            });
+        this.other = this.add.sprite(this.halfWidth, this.resume.y + (this.resume.displayHeight / 0.8), "icOther")
+            .setDepth(2)
+            .setScale(0.5)
+            .setOrigin(0.5, 0.5)
+            .setInteractive()
+            .on('pointerdown', () => {
+                this.scene.resume("PlayGame");
+                this.scene.stop();
+            });
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBdFMZoNwEWNqCOfUezoSB-TewpOBUfX98",
+            authDomain: "mgoalindo---app.firebaseapp.com",
+            databaseURL: "https://mgoalindo---app-default-rtdb.firebaseio.com",
+            projectId: "mgoalindo---app",
+            storageBucket: "mgoalindo---app.appspot.com",
+            messagingSenderId: "909481590933",
+            appId: "1:909481590933:web:a0626d75765bd850a5db9c",
+            measurementId: "G-RLCM7JVYFY"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+
+        // Initialize Realtime Database and get a reference to the service
+        const database = getDatabase(app);
+
+        const db = getFirestore(app);
+        const querySnapshot = await getDocs(collection(db, "pinball-leaderboard"));
+        console.log(querySnapshot);
+        var rowWidth = 0;
+        querySnapshot.docs.sort();
+        querySnapshot.forEach((doc) => {
+            // doc.data() is never undefined for query doc snapshots
+            console.log(doc.id, " => ", doc.data());
+            let name = doc.data().name.length > 8 ? doc.data().name.substring(0, 7) : doc.data().name;
+            let score = doc.data().score;
+            this.rank = this.make.text({
+                x: this.halfWidth - (70 * dpr),
+                y: (this.halfHeight - (90 * dpr)) + (rowWidth * dpr),
+                text: "0",
+                padding: {
+                    left: 5,
+                    right: 5,
+                    top: 5,
+                    bottom: 5
+                },
+                style: {
+                    align: "center",
+                    fontFamily: "Arial Black",
+                    fontSize: 8 * dpr,
+                    fill: "#000000"
+                }
+            }).setDepth(2).setOrigin(0.5, 0.5).setText("1");
+
+            this.name = this.make.text({
+                x: this.halfWidth - (40 * dpr),
+                y: (this.halfHeight - (90 * dpr)) + (rowWidth * dpr),
+                text: "0",
+                padding: {
+                    left: 5,
+                    right: 5,
+                    top: 5,
+                    bottom: 5
+                },
+                style: {
+                    align: "center",
+                    fontFamily: "Arial Black",
+                    fontSize: 8 * dpr,
+                    fill: "#000000"
+                }
+            }).setDepth(2).setOrigin(0, 0.5).setText(name);
+
+            this.score = this.make.text({
+                x: this.halfWidth + (35 * dpr),
+                y: (this.halfHeight - (90 * dpr)) + (rowWidth * dpr),
+                text: "0",
+                padding: {
+                    left: 5,
+                    right: 5,
+                    top: 5,
+                    bottom: 5
+                },
+                style: {
+                    align: "center",
+                    fontFamily: "Arial Black",
+                    fontSize: 8 * dpr,
+                    fill: "#000000"
+                }
+            }).setDepth(2).setOrigin(0, 0.5).setText(score);
+            rowWidth += (8 * dpr);
         });
+        // querySnapshot.forEach((doc) => {
+        //     // doc.data() is never undefined for query doc snapshots
+        //     console.log(doc.id, " => ", doc.data());
+        // });
+
+
+        // CONTOH
+        // const firestore = getFirestore(app);
+        // const docRef = doc(firestore, 'collection/doc');
+        // const docSnap = await getDoc(docRef);
+        // await updateDoc(docRef, "field", 'value');
     }
 }
 
@@ -2079,6 +2251,7 @@ class ChainShape extends Phaser.GameObjects.Sprite {
         const poly = new Polygon(arrTemp);
         const bbox = poly.aabb();
 
+        let PX2M = 0.01;
         const width = bbox.w;
         const height = bbox.h;
         // this.setDisplayOrigin(bbox.x, bbox.y);
@@ -2104,11 +2277,12 @@ class ChainShape extends Phaser.GameObjects.Sprite {
         //     this.setTexture(key);
         // }
         // this.setTexture(rnd);
-        this.displayWidth = width / (scale + 0.4);
+        this.displayWidth = width;
         this.displayHeight = height;
+        // console.log(`Nama width:${key}`);
+        // console.log(`polygon width:${width}`);
         this.scale = scaleSprite;
-
-        // this.displayOriginY = 0.5;
+        // console.log(`scale width:${this.displayWidth}`);
         // this.setDisplayOrigin(((width / 2) / scene.scaleFactor) * scale, ((height / 2) / scene.scaleFactor) * scale);
         // this.displayOriginY = ((height / 2) / scene.scaleFactor) * scale;
         this.scene = scene;
@@ -2152,7 +2326,6 @@ class ChainShape extends Phaser.GameObjects.Sprite {
             center: planck.Vec2(),
             I: this.isFixed ? 0 : 1
         });
-
         // console.log(this.b);
         // let p = this.b.getPosition();
         // this.x = p.x * this.scene.scaleFactor;
