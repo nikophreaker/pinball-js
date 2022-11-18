@@ -9,8 +9,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const DIST_DIR = path.join(__dirname, '/');
-const HTML_FILE = path.join(DIST_DIR, 'index.ejs');
+const DIST_DIR = path.join(__dirname, '/src/');
+const HTML_FILE = path.join(DIST_DIR, 'index.html');
 
 app.use(express.static(DIST_DIR));
 app.engine('html', ejs.renderFile);
