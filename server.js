@@ -3,9 +3,12 @@
 
 import path from 'path';
 import express from 'express';
-import { fileURLToPath } from 'url';
+import {
+    fileURLToPath
+} from 'url';
 import ejs from 'ejs';
-const __filename = fileURLToPath(import.meta.url);
+const __filename = fileURLToPath(
+    import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
@@ -20,7 +23,7 @@ app.get('*', (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
     console.log(`App Listening to ${PORT}....`);
