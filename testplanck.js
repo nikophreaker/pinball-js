@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-analytics.js";
 import { getDatabase, ref, child, get } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-database.js";
-import { getFirestore, query, collection, doc, getDoc, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
+import { getFirestore, query, collection, doc, setDoc, getDoc, getDocs, where, orderBy, limit, updateDoc } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
 const PATHS = {
     DOME: '0 0 0 250 19 250 20 231.9 25.7 196.1 36.9 161.7 53.3 129.5 74.6 100.2 100.2 74.6 129.5 53.3 161.7 36.9 196.1 25.7 231.9 20 268.1 20 303.9 25.7 338.3 36.9 370.5 53.3 399.8 74.6 425.4 100.2 446.7 129.5 463.1 161.7 474.3 196.1 480 231.9 480 250 500 250 500 0 0 0',
     // DROP_LEFT: '0 0 20 0 70 100 20 150 0 150 0 0',
@@ -28,7 +28,7 @@ const PADDLE_PULL = 0.005;
 const MAX_VELOCITY = 50;
 
 // shared variables
-let isPause = false;
+var currentTicket, userId, username;
 let dpr, scaleSprite;
 let currentScore, highScore, bufferScore;
 let fieldBumper, fieldBumper2;
@@ -58,7 +58,82 @@ var OBSTACLE = 0xFFFF;
 var OBSTACLE_GROUP = -1;
 var BALL_GROUP = -2;
 
+// CONFIGURASI FIREBASE
+const firebaseConfig = {
+    apiKey: "AIzaSyBdFMZoNwEWNqCOfUezoSB-TewpOBUfX98",
+    authDomain: "mgoalindo---app.firebaseapp.com",
+    databaseURL: "https://mgoalindo---app-default-rtdb.firebaseio.com",
+    projectId: "mgoalindo---app",
+    storageBucket: "mgoalindo---app.appspot.com",
+    messagingSenderId: "909481590933",
+    appId: "1:909481590933:web:a0626d75765bd850a5db9c",
+    measurementId: "G-RLCM7JVYFY"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+// Initialize Realtime Database and get a reference to the service
+const database = getDatabase(app);
+
+// Initialize Firestore Database and get document
+const db = getFirestore(app);
+const colRef = collection(db, "pinball-leaderboard");
+
+//SETUP AXIOS
+var url = window.location;
+var access_token = new URLSearchParams(url.search).get("access_token");
+let AUTH_TOKEN = `Bearer ${access_token}`
+axios.defaults.baseURL = 'https://api.msportsid.com/api';
+axios.defaults.headers.common['Authorization'] = AUTH_TOKEN;
+axios.defaults.headers.post['Content-Type'] = 'application/json';
+
+// GET USER DATA FROM API WITH AXIOS
+async function getUserProfile() {
+    try {
+        await axios.get('/user/profil', {
+        })
+            .then(function (response) {
+                let profileUser = response.data[0];
+                currentTicket = profileUser.user_tiket_game.tiket;
+                userId = profileUser.id;
+                username = profileUser.name;
+                // console.log(response.data[0]);
+            })
+            .catch(function (error) {
+                console.log(error);
+            })
+            .then(function () {
+                // always executed
+            });
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+async function playWithTicket() {
+    try {
+        await axios.get('/game/fortunewheel/start', {
+        })
+            .then(function (response) {
+                if (response.status == 1) {
+                    return true
+                }
+                return false
+            })
+            .catch(function (error) {
+                console.log(error);
+                return false
+            })
+    } catch (error) {
+        console.error(error);
+        return false
+    }
+}
+
 window.onload = function () {
+    getUserProfile();
     let gameConfig = {
         type: Phaser.CANVAS,
         scale: {
@@ -72,45 +147,134 @@ window.onload = function () {
             createContainer: true
         },
         backgroundColor: 0xD30000,
-        // physics: {
-        //     default: 'matter', //arcade
-        //     matter: {
-        //         gravity: { //global gravity
-        //             y: GRAVITY
-        //         },
-        //         plugins: {
-        //             attractors: true,
-        //         },
-        //         positionIterations: 6,
-        //         velocityIterations: 4,
-        //         constraintIterations: 2,
-        //         enableSleeping: false,
-        //         timing: {
-        //             timestamp: 0,
-        //             timeScale: 1
-        //         },
-        //         debug: true
-        //     },
-        // },
-        // plugins: {
-        //     scene: [{
-        //         plugin: PhaserMatterCollisionPlugin.default,
-        //         key: 'matterCollision',
-        //         mapping: 'matterCollision'
-        //     }]
-        // },
-        scene: [PlayGame, Leaderboard]
+        scene: [LobbyGame, PlayGame, Leaderboard]
     };
     var game = new Phaser.Game(gameConfig);
     window.focus();
+}
 
-    // (function run() {
-    //     window.requestAnimationFrame(run);
-    //     for (let i = 0; i < subSteps; i += 1) {
-    //         PlayGame.update(engine, subDelta);
-    //     }
-    // })();
+class LobbyGame extends Phaser.Scene {
+    constructor() {
+        super("LobbyGame");
+    }
 
+    // scaling sprite atau lainnya dengan mempertahankan ratio pixel
+    scaleWithRatioPixel(offset) {
+        return ((1 * window.devicePixelRatio) / 4) - offset;
+    }
+
+    init() {
+        dpr = window.devicePixelRatio;
+        scaleSprite = this.scaleWithRatioPixel(0);
+
+        window.mobileCheck = function () {
+            let check = false;
+            (function (a) { if (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0, 4))) check = true; })(navigator.userAgent || navigator.vendor || window.opera);
+            return check;
+        };
+        // init canvas size
+        this.gameWidth = this.sys.game.scale.width
+        this.gameHeight = this.sys.game.scale.height
+        this.halfWidth = this.gameWidth / 2;
+        this.halfHeight = this.gameHeight / 2;
+    }
+
+    preload() {
+        var progressBar = this.add.graphics();
+        var progressBox = this.add.graphics();
+        progressBox.fillStyle(0x222222, 0.8);
+        progressBox.fillRect((this.gameWidth / 2) - (320 / 2), this.gameHeight / 2, 320, 50);
+
+        var textLoading = this.make.text({
+            x: this.gameWidth / 2,
+            y: this.gameHeight / 2 - 50,
+            text: "Loading...",
+            style: {
+                fontFamily: "Arial Black",
+                fontSize: 12 * window.devicePixelRatio,
+                fill: "#FFFFFF"
+            }
+        });
+
+        var percentText = this.make.text({
+            x: this.gameWidth / 2,
+            y: this.gameHeight / 2 + 5,
+            text: "0%",
+            style: {
+                fontFamily: "Arial Black",
+                fontSize: 12 * window.devicePixelRatio,
+                fill: "#FFFFFF"
+            }
+        });
+
+        textLoading.setOrigin(0.5, 0.5);
+        percentText.setOrigin(0.5, 0.5);
+
+        this.load.on("progress", function (value) {
+            progressBar.clear();
+            percentText.setText(parseInt(value * 100) + "%");
+            progressBar.clear();
+            progressBar.fillStyle(0xffffff, 1);
+            progressBar.fillRect(((this.gameWidth / 2) - (300 / 2)), (this.gameHeight / 2) + 10, 300 * value, 30);
+        });
+
+        this.load.on("complete", function () {
+            progressBar.destroy();
+            progressBox.destroy();
+            textLoading.destroy();
+            percentText.destroy();
+        });
+
+        /*
+         *Load ASSET
+         */
+        this.load.path = "./asset/img/";
+        this.load.image("btnStart", "btnStart.png");
+        this.load.image("bgIntro", "bg_intro.jpg");
+        this.load.image("bgStart", "bg_start.png");
+    }
+
+    create() {
+        // console.log(`DPR: ${window.devicePixelRatio}`);
+        // console.log(this.scaleWithRatioPixel(0));
+        this.bgIntro = this.add.sprite(this.gameWidth / 2, this.gameHeight / 2, "bgIntro");
+        this.btnStart = this.add.sprite(this.gameWidth / 2, this.gameHeight / 1.5, "btnStart")
+            .setScale(this.scaleWithRatioPixel(0.1));
+        this.btnStart.setInteractive() // impartant for make sprite or image event
+        let btnStart = this.btnStart;
+        let btnStartOver = this.scaleWithRatioPixel(0);
+        let btnStartOut = this.scaleWithRatioPixel(0.1);
+        let ww = this;
+        this.bgIntro.setDisplaySize(this.gameWidth, this.gameHeight);
+        this.btnStart.on("pointerover", function () {
+            btnStart.setScale(btnStartOver);
+        });
+        this.btnStart.on("pointerout", function () {
+            btnStart.setScale(btnStartOut);
+        });
+        this.btnStart.on("pointerdown", function () {
+            if (playWithTicket()) {
+                ww.scene.stop();
+                ww.scene.launch("PlayGame");
+            } else {
+                console.log("Tiket Habis");
+            }
+        });
+
+        this.currentTicket = this.add.text((5 * dpr), (5 * dpr), '', {
+            fill: '#F7D013',
+            align: "center",
+            fontFamily: "Arial Black",
+            fontSize: 12 * dpr,
+        })
+            .setDepth(2);
+    }
+
+    update() {
+        if (this.currentTicket != undefined && currentTicket != undefined) {
+            this.currentTicket.setText(`Your Current Ticket: ${currentTicket}`);
+        }
+    }
 }
 
 class PlayGame extends Phaser.Scene {
@@ -206,23 +370,7 @@ class PlayGame extends Phaser.Scene {
             textLoading.destroy();
             percentText.destroy();
         });
-
-        this.load.plugin('rexmovetoplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexmovetoplugin.min.js', true);
-
-        // fetch("", {
-        //     method: "get",
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //         'Authorization': `Bearer ${userToken}`
-        //     }
-        // }).then(res => {
-        //     res.json().then(res2 => {
-        //         userpull = res2;
-        //         console.log(`User's Pull : ${res2}`);
-        //     })
-        // }).catch(err => {
-        //     console.log(err);
-        // });
+        // this.load.plugin('rexmovetoplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexmovetoplugin.min.js', true);
 
         /*
          *Load ASSET
@@ -309,28 +457,7 @@ class PlayGame extends Phaser.Scene {
         );
     }
 
-    create() {
-        console.log(`DPR: ${window.devicePixelRatio}`);
-        console.log(this.scaleWithRatioPixel(0));
-        // this.bgIntro = this.add.sprite(this.gameWidth / 2, this.gameHeight / 2, "bgIntro");
-        // this.btnStart = this.add.sprite(this.gameWidth / 2, this.gameHeight / 1.5, "btnStart")
-        //     .setScale(this.scaleWithRatioPixel(0.1));
-        // this.btnStart.setInteractive() // impartant for make sprite or image event
-        // let btnStart = this.btnStart;
-        // let btnStartOver = this.scaleWithRatioPixel(0);
-        // let btnStartOut = this.scaleWithRatioPixel(0.1);
-        // this.bgIntro.setDisplaySize(this.gameWidth, this.gameHeight);
-        // this.btnStart.on("pointerover", function () {
-        //     btnStart.setScale(btnStartOver);
-        // });
-        // this.btnStart.on("pointerout", function () {
-        //     btnStart.setScale(btnStartOut);
-        // });
-        this.enterGame();
-        // this.btnStart.on("pointerdown", this.enterGame, this);
-    }
-
-    enterGame() {
+    async create() {
         this.shapes = this.cache.json.get('shapes');
 
         this.add.image(this.halfWidth - (3 * dpr), this.halfHeight + (11 * dpr), 'bgPinball', null, {
@@ -340,7 +467,7 @@ class PlayGame extends Phaser.Scene {
             .setScale(0.25 * dpr).setDepth(0);
 
         this.leaderboard = this.add.text((5 * dpr), (5 * dpr), 'LEADERBOARD', {
-            fill: '#0f0',
+            fill: '#F7D013',
             align: "center",
             fontFamily: "Arial Black",
             fontSize: 12 * dpr,
@@ -348,15 +475,15 @@ class PlayGame extends Phaser.Scene {
         // this.scene.pause();
         this.leaderboard.setInteractive();
         this.leaderboard.on('pointerdown', () => {
+            let scoreReformated = String(currentScore).replace(',', '')
+            let score = parseInt(scoreReformated)
             this.scene.pause();
-            this.scene.launch("Leaderboard");
-            // if (!isPause) {
-            //     this.scene.pause();
-            //     isPause = true;
-            // } else {
-            //     this.scene.resume();
-            //     isPause = false;
-            // }
+            this.scene.launch("Leaderboard", {
+                isGameOver: false,
+                userId: userId,
+                name: username,
+                score: score,
+            });
         });
 
         this.textScore = this.make.text({
@@ -782,6 +909,7 @@ class PlayGame extends Phaser.Scene {
                 // Ball when falling down (game over destroy ball)
                 if (labelBodyA == "topWall" && labelBodyB == "ballss") {
                     // ww.ball.destroy();
+                    ww.gameOver();
                     setTimeout(function () {
                         let x = (ww.halfWidth / ww.scaleFactor) + (138 * dpr / ww.scaleFactor);
                         let y = ww.halfHeight / ww.scaleFactor;
@@ -1480,6 +1608,18 @@ class PlayGame extends Phaser.Scene {
         // }
     }
 
+    async gameOver() {
+        let scoreReformated = String(currentScore).replace(',', '')
+        let score = parseInt(scoreReformated)
+        this.scene.pause();
+        this.scene.launch("Leaderboard", {
+            isGameOver: true,
+            userId: userId,
+            name: username,
+            score: score,
+        });
+    }
+
     update() {
         let spring = this.spring;
         let lengthSpring = -(this.triggerSpring.m_s1);
@@ -1558,15 +1698,20 @@ class Leaderboard extends Phaser.Scene {
         super("Leaderboard");
     }
 
-    init() {
+    init(data) {
         // init canvas size
         this.gameWidth = this.sys.game.scale.width
         this.gameHeight = this.sys.game.scale.height
         this.halfWidth = this.gameWidth / 2;
         this.halfHeight = this.gameHeight / 2;
+        this.isGameOver = data.isGameOver;
+        this.userId = data.userId;
+        this.username = data.name;
+        this.userScore = data.score;
     }
 
     preload() {
+        getUserProfile()
         /*
          *Load ASSET
          */
@@ -1574,7 +1719,10 @@ class Leaderboard extends Phaser.Scene {
         this.load.image("btnStart", "btnStart.png");
         this.load.image("bgIntro", "bg_intro.jpg");
         this.load.image("bgStart", "bg_start.png");
+        this.load.image("icGamepause", "ic_gamepause.png");
+        this.load.image("icGameover", "ic_gameover.png");
         this.load.image("icResume", "ic_resume.png");
+        this.load.image("icTryagain", "ic_tryagain.png");
         this.load.image("icOther", "ic_other_game.png");
         this.load.image("fieldLeaderboard", "field_leaderboard.png");
     }
@@ -1583,55 +1731,80 @@ class Leaderboard extends Phaser.Scene {
         this.add.graphics().setDepth(1).fillStyle(0x000000, 0.8).fillRect(0, 0, this.gameWidth, this.gameHeight);
         this.fieldLeaderboard = this.add.image(this.halfWidth, this.halfHeight, "fieldLeaderboard")
             .setDepth(2)
-            .setScale(0.5)
+            .setScale(0.25 * dpr)
             .setOrigin(0.5, 0.5);
-        this.resume = this.add.sprite(this.halfWidth, this.fieldLeaderboard.y + (this.fieldLeaderboard.displayHeight / 1.7), "icResume")
+
+        let statusGame = this.isGameOver ? "icGameover" : "icGamepause";
+        this.add.image(this.halfWidth, this.halfHeight - (180 * dpr), statusGame)
             .setDepth(2)
-            .setScale(0.5)
+            .setScale(0.25 * dpr)
+            .setOrigin(0.5, 0.5);
+        let status = this.isGameOver ? "icTryagain" : "icResume";
+        this.resume = this.add.sprite(this.halfWidth, this.fieldLeaderboard.y + (this.fieldLeaderboard.displayHeight / 1.7), status)
+            .setDepth(2)
+            .setScale(0.25 * dpr)
             .setOrigin(0.5, 0.5)
             .setInteractive()
             .on('pointerdown', () => {
-                this.scene.resume("PlayGame");
-                this.scene.stop();
+                if (this.isGameOver) {
+                    if (playWithTicket()) {
+                        this.scene.resume("PlayGame");
+                        this.scene.stop();
+                    } else {
+                        console.log("gak cukup tiket")
+                    }
+                } else {
+                    this.scene.resume("PlayGame");
+                    this.scene.stop();
+                }
             });
         this.other = this.add.sprite(this.halfWidth, this.resume.y + (this.resume.displayHeight / 0.8), "icOther")
             .setDepth(2)
-            .setScale(0.5)
+            .setScale(0.25 * dpr)
             .setOrigin(0.5, 0.5)
             .setInteractive()
             .on('pointerdown', () => {
                 this.scene.resume("PlayGame");
                 this.scene.stop();
             });
+        //GET USER DOC
+        let docRef = doc(db, "pinball-leaderboard", String(this.userId));
+        const queryUser = await getDoc(docRef);
+        //ADD & UPDATE SCORE USER IN LEADERBOARD 
+        if (queryUser.exists()) {
+            await setDoc(docRef, {
+                name: this.username,
+                score: this.userScore > queryUser.data().score ? this.userScore : queryUser.data().score,
+                date: tglIndonesia(),
+                timestamp: Math.floor(Date.now() / 1000),
+            });
+        } else {
+            await setDoc(docRef, {
+                name: this.username,
+                score: this.userScore,
+                date: tglIndonesia(),
+                timestamp: Math.floor(Date.now() / 1000),
+            });
+        }
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBdFMZoNwEWNqCOfUezoSB-TewpOBUfX98",
-            authDomain: "mgoalindo---app.firebaseapp.com",
-            databaseURL: "https://mgoalindo---app-default-rtdb.firebaseio.com",
-            projectId: "mgoalindo---app",
-            storageBucket: "mgoalindo---app.appspot.com",
-            messagingSenderId: "909481590933",
-            appId: "1:909481590933:web:a0626d75765bd850a5db9c",
-            measurementId: "G-RLCM7JVYFY"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-
-        // Initialize Realtime Database and get a reference to the service
-        const database = getDatabase(app);
-
-        const db = getFirestore(app);
-        const querySnapshot = await getDocs(collection(db, "pinball-leaderboard"));
-        console.log(querySnapshot);
+        // GET LEADERBOARD DATA (Highest Score)
+        const q = query(colRef, orderBy("score", "desc"), orderBy("timestamp", "asc"), limit(10));
+        const querySnapshot = await getDocs(q);
         var rowWidth = 0;
-        querySnapshot.docs.sort();
+        var rank = 1;
+        var userInHighest = false;
         querySnapshot.forEach((doc) => {
             // doc.data() is never undefined for query doc snapshots
-            console.log(doc.id, " => ", doc.data());
+            // console.log(doc.id, " => ", doc.data());
             let name = doc.data().name.length > 8 ? doc.data().name.substring(0, 7) : doc.data().name;
-            let score = doc.data().score;
+            let score = String(doc.data().score).replace(/(.)(?=(\d{3})+$)/g, '$1,');
+            if (this.userId == doc.id) {
+                userInHighest = true;
+                this.add.graphics()
+                    .fillStyle(0xF7D013, 0.4)
+                    .fillRect(this.halfWidth - (85 * dpr), (this.halfHeight - (95 * dpr)) + (rowWidth * dpr), (175 * dpr), (10 * dpr))
+                    .setDepth(2);
+            }
             this.rank = this.make.text({
                 x: this.halfWidth - (70 * dpr),
                 y: (this.halfHeight - (90 * dpr)) + (rowWidth * dpr),
@@ -1648,7 +1821,7 @@ class Leaderboard extends Phaser.Scene {
                     fontSize: 8 * dpr,
                     fill: "#000000"
                 }
-            }).setDepth(2).setOrigin(0.5, 0.5).setText("1");
+            }).setDepth(2).setOrigin(0.5, 0.5).setText(rank);
 
             this.name = this.make.text({
                 x: this.halfWidth - (40 * dpr),
@@ -1686,18 +1859,89 @@ class Leaderboard extends Phaser.Scene {
                 }
             }).setDepth(2).setOrigin(0, 0.5).setText(score);
             rowWidth += (8 * dpr);
+            rank++;
         });
-        // querySnapshot.forEach((doc) => {
-        //     // doc.data() is never undefined for query doc snapshots
-        //     console.log(doc.id, " => ", doc.data());
-        // });
 
+        if (!userInHighest) {
+            //GET USER QUERY AFTER UPDATE (Not in Highest)
+            const queryUser2 = await getDoc(docRef);
+            if (queryUser2.exists()) {
+                let name = queryUser2.data().name.length > 8 ? doc.data().name.substring(0, 7) : queryUser2.data().name;
+                let score = String(queryUser2.data().score).replace(/(.)(?=(\d{3})+$)/g, '$1,');
+                this.add.graphics()
+                    .fillStyle(0xF7D013, 0.4)
+                    .fillRect(this.halfWidth - (85 * dpr), (this.halfHeight - (95 * dpr)) + (rowWidth * dpr), (175 * dpr), (10 * dpr))
+                    .setDepth(2);
+                this.rank = this.make.text({
+                    x: this.halfWidth - (70 * dpr),
+                    y: (this.halfHeight - (90 * dpr)) + (rowWidth * dpr),
+                    text: "0",
+                    padding: {
+                        left: 5,
+                        right: 5,
+                        top: 5,
+                        bottom: 5
+                    },
+                    style: {
+                        align: "center",
+                        fontFamily: "Arial Black",
+                        fontSize: 8 * dpr,
+                        fill: "#000000"
+                    }
+                }).setDepth(2).setOrigin(0.5, 0.5).setText(rank);
 
-        // CONTOH
-        // const firestore = getFirestore(app);
-        // const docRef = doc(firestore, 'collection/doc');
-        // const docSnap = await getDoc(docRef);
-        // await updateDoc(docRef, "field", 'value');
+                this.name = this.make.text({
+                    x: this.halfWidth - (40 * dpr),
+                    y: (this.halfHeight - (90 * dpr)) + (rowWidth * dpr),
+                    text: "0",
+                    padding: {
+                        left: 5,
+                        right: 5,
+                        top: 5,
+                        bottom: 5
+                    },
+                    style: {
+                        align: "center",
+                        fontFamily: "Arial Black",
+                        fontSize: 8 * dpr,
+                        fill: "#000000"
+                    }
+                }).setDepth(2).setOrigin(0, 0.5).setText(name);
+
+                this.score = this.make.text({
+                    x: this.halfWidth + (35 * dpr),
+                    y: (this.halfHeight - (90 * dpr)) + (rowWidth * dpr),
+                    text: "0",
+                    padding: {
+                        left: 5,
+                        right: 5,
+                        top: 5,
+                        bottom: 5
+                    },
+                    style: {
+                        align: "center",
+                        fontFamily: "Arial Black",
+                        fontSize: 8 * dpr,
+                        fill: "#000000"
+                    }
+                }).setDepth(2).setOrigin(0, 0.5).setText(score);
+            }
+
+        }
+
+        this.currentTicket = this.add.text((5 * dpr), (5 * dpr), '', {
+            fill: '#F7D013',
+            align: "center",
+            fontFamily: "Arial Black",
+            fontSize: 12 * dpr,
+        })
+            .setDepth(2);
+    }
+
+    update() {
+        if (this.currentTicket != undefined && currentTicket != undefined) {
+            this.currentTicket.setText(`Your Current Ticket: ${currentTicket}`);
+        }
     }
 }
 
@@ -2494,3 +2738,40 @@ const getPoints = (json, key) => {
         circles
     };
 };
+
+function tglIndonesia() {
+    var date = new Date();
+    var tahun = date.getFullYear();
+    var bulan = date.getMonth();
+    var tanggal = date.getDate();
+    var hari = date.getDay();
+    var jam = date.getHours();
+    var menit = date.getMinutes();
+    var detik = date.getSeconds();
+    switch (hari) {
+        case 0: hari = "Minggu"; break;
+        case 1: hari = "Senin"; break;
+        case 2: hari = "Selasa"; break;
+        case 3: hari = "Rabu"; break;
+        case 4: hari = "Kamis"; break;
+        case 5: hari = "Jum'at"; break;
+        case 6: hari = "Sabtu"; break;
+    }
+    switch (bulan) {
+        case 0: bulan = "Januari"; break;
+        case 1: bulan = "Februari"; break;
+        case 2: bulan = "Maret"; break;
+        case 3: bulan = "April"; break;
+        case 4: bulan = "Mei"; break;
+        case 5: bulan = "Juni"; break;
+        case 6: bulan = "Juli"; break;
+        case 7: bulan = "Agustus"; break;
+        case 8: bulan = "September"; break;
+        case 9: bulan = "Oktober"; break;
+        case 10: bulan = "November"; break;
+        case 11: bulan = "Desember"; break;
+    }
+    var tampilTanggal = hari + ", " + tanggal + " " + bulan + " " + tahun;
+    var tampilWaktu = jam + ":" + menit + ":" + detik;
+    return tampilTanggal + " " + tampilWaktu
+}
