@@ -908,9 +908,10 @@ class PlayGame extends Phaser.Scene {
             fontSize: 8 * window.devicePixelRatio,
             fill: "#FFFFFF"
         }
-        let leftJoy = this.add.text((this.gameWidth / 2) - (110 * dpr), (this.gameHeight / 2) + (285 * dpr), 'LEFT', style)
+        let leftJoy = this.add.rectangle(0, 0, this.halfWidth, this.gameHeight, 0xfffffff, 0)
             .setDepth(2)
             .setInteractive()
+            .setOrigin(0, 0)
             .on('pointerdown', function (e) {
                 leftPaddle.setMotorSpeed(-20);
             })
@@ -918,9 +919,10 @@ class PlayGame extends Phaser.Scene {
                 leftPaddle.setMotorSpeed(20);
             });
 
-        let rightJoy = this.add.text((this.gameWidth / 2) + (75 * dpr), (this.gameHeight / 2) + (285 * dpr), 'RIGHT', style)
+        let rightJoy = this.add.rectangle(this.halfWidth, 0, this.halfWidth, this.gameHeight, 0xfffffff, 0)
             .setDepth(2)
             .setInteractive()
+            .setOrigin(0, 0)
             .on('pointerdown', function (e) {
                 rightPaddle.setMotorSpeed(20);
             })
@@ -928,9 +930,10 @@ class PlayGame extends Phaser.Scene {
                 rightPaddle.setMotorSpeed(-20);
             });
 
-        let pullJoy = this.add.text((this.gameWidth / 2) + (135 * dpr), (this.gameHeight / 2) + (285 * dpr), 'PULL', style)
+        this.pullJoy = this.add.rectangle(0, 0, this.gameWidth, this.gameHeight, 0xfffffff, 0)
             .setDepth(2)
             .setInteractive()
+            .setOrigin(0, 0)
             .on('pointerdown', function (e) {
                 btnSpaceHold = true;
                 triggerPer.setMaxMotorForce(-5);
@@ -939,7 +942,6 @@ class PlayGame extends Phaser.Scene {
                 btnSpaceHold = false;
                 triggerPer.setMaxMotorForce(-200);
             });
-
         // Testing with mouse clik for ball
         // let world = this;
         // let ball = this.ball;
@@ -993,6 +995,7 @@ class PlayGame extends Phaser.Scene {
                         ball.ball2Bridge(planck.Vec2(x, y));
                         ww.closeBegin.b.setActive(false);
                         ww.closeBegin.setAlpha(0);
+                        ww.pullJoy.setInteractive();
                     }, 1);
                 }
                 // if (labelBodyA == "wall4" && labelBodyB == "ballss") {
@@ -1227,6 +1230,7 @@ class PlayGame extends Phaser.Scene {
                     setTimeout(function () {
                         ww.closeBegin.b.setActive(true);
                         ww.closeBegin.setAlpha(1);
+                        ww.pullJoy.disableInteractive();
                         // ww.createBeginStop();
                     }, 1);
                 } else if (labelBodyA == "triggerClose" && labelBodyB == "ballss") {
