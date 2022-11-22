@@ -917,6 +917,12 @@ class PlayGame extends Phaser.Scene {
             })
             .on('pointerup', function (e) {
                 leftPaddle.setMotorSpeed(20);
+            })
+            .on('touchstart', function (e) {
+                leftPaddle.setMotorSpeed(-20);
+            })
+            .on('touchend', function (e) {
+                leftPaddle.setMotorSpeed(20);
             });
 
         let rightJoy = this.add.rectangle(this.halfWidth, 0, this.halfWidth, this.gameHeight, 0xfffffff, 0)
@@ -927,6 +933,12 @@ class PlayGame extends Phaser.Scene {
                 rightPaddle.setMotorSpeed(20);
             })
             .on('pointerup', function (e) {
+                rightPaddle.setMotorSpeed(-20);
+            })
+            .on('touchstart', function (e) {
+                rightPaddle.setMotorSpeed(20);
+            })
+            .on('touchend', function (e) {
                 rightPaddle.setMotorSpeed(-20);
             });
 
