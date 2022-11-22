@@ -1236,6 +1236,8 @@ class PlayGame extends Phaser.Scene {
                 } else if (labelBodyA == "triggerClose" && labelBodyB == "ballss") {
                     setTimeout(function () {
                         ww.closeBegin.b.setActive(true);
+                        ww.closeBegin.setAlpha(1);
+                        ww.pullJoy.disableInteractive();
                         // ww.createBeginStop();
                     }, 1);
                 }
