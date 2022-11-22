@@ -316,7 +316,6 @@ class LobbyGame extends Phaser.Scene {
         });
         this.btnStart.on("pointerdown", function () {
             if (clickedAgain) {
-                console.log("clicked");
                 clickedAgain = false;
                 playWithTicket()
                     .then(val => {
@@ -326,7 +325,8 @@ class LobbyGame extends Phaser.Scene {
                             ww.scene.stop("LobbyGame");
                         } else {
                             clickedAgain = true;
-                            console.log("Tiket Habis");
+                            alert("Ticket Kamu Habis");
+                            // console.log("Tiket Habis");
                         }
                     })
                     .catch(err => {
@@ -338,11 +338,11 @@ class LobbyGame extends Phaser.Scene {
 
         getUserProfile().then(() => {
             this.currentTickets = this.add.text((5 * dpr), (5 * dpr), '', {
-                    fill: '#F7D013',
-                    align: "center",
-                    fontFamily: "Arial Black",
-                    fontSize: 12 * dpr,
-                })
+                fill: '#F7D013',
+                align: "center",
+                fontFamily: "Arial Black",
+                fontSize: 12 * dpr,
+            })
                 .setDepth(2);
             if (this.currentTickets != undefined && this.currentTickets != null && currentTicket != undefined && currentTicket != null) {
                 this.currentTickets.setText(`Your Current Ticket: ${currentTicket}`);
@@ -551,9 +551,9 @@ class PlayGame extends Phaser.Scene {
         this.shapes = this.cache.json.get('shapes');
 
         this.add.image(this.halfWidth - (3 * dpr), this.halfHeight + (11 * dpr), 'bgPinball', null, {
-                isStatic: true,
-                isSensor: true,
-            })
+            isStatic: true,
+            isSensor: true,
+        })
             .setScale(0.25 * dpr).setDepth(0);
 
         this.leaderboard = this.add.text((5 * dpr), (5 * dpr), 'LEADERBOARD', {
@@ -836,21 +836,21 @@ class PlayGame extends Phaser.Scene {
 
         // Puck Led
         this.puckLed1 = this.add.sprite(this.halfWidth + (80 * dpr), this.halfHeight - (142 * dpr), 'puckLedOff', null, {
-                isStatic: true,
-                isSensor: true,
-            })
+            isStatic: true,
+            isSensor: true,
+        })
             .setScale(0.55)
             .setDepth(2);
         this.puckLed2 = this.add.sprite(this.halfWidth + (98 * dpr), this.halfHeight - (145 * dpr), 'puckLedOff', null, {
-                isStatic: true,
-                isSensor: true,
-            })
+            isStatic: true,
+            isSensor: true,
+        })
             .setScale(0.55)
             .setDepth(2);
         this.puckLed3 = this.add.sprite(this.halfWidth + (115 * dpr), this.halfHeight - (145 * dpr), 'puckLedOff', null, {
-                isStatic: true,
-                isSensor: true,
-            })
+            isStatic: true,
+            isSensor: true,
+        })
             .setScale(0.55)
             .setDepth(2);
     }
@@ -1824,7 +1824,6 @@ class PlayGame extends Phaser.Scene {
     gameOver() {
         let scoreReformated = String(currentScore).replace(',', '');
         let score = parseInt(scoreReformated);
-        console.log(this.scene);
         this.scene.pause("PlayGame");
         getUserProfile()
             .then(() => {
@@ -1933,7 +1932,6 @@ class Leaderboard extends Phaser.Scene {
         this.userId = data.userId;
         this.username = data.name;
         this.userScore = data.score;
-        console.log(data);
     }
 
     preload() {
@@ -1984,7 +1982,8 @@ class Leaderboard extends Phaser.Scene {
                                     this.scene.stop("Leaderboard");
                                 } else {
                                     clickedAgain = true;
-                                    console.log("gak cukup tiket")
+                                    alert("Ticket Kamu Habis");
+                                    // console.log("gak cukup tiket")
                                 }
                             })
                             .catch(err => {
@@ -2173,11 +2172,11 @@ class Leaderboard extends Phaser.Scene {
 
         getUserProfile().then(() => {
             this.currentTickets = this.add.text((5 * dpr), (5 * dpr), '', {
-                    fill: '#F7D013',
-                    align: "center",
-                    fontFamily: "Arial Black",
-                    fontSize: 12 * dpr,
-                })
+                fill: '#F7D013',
+                align: "center",
+                fontFamily: "Arial Black",
+                fontSize: 12 * dpr,
+            })
                 .setDepth(2);
             if (this.currentTickets != undefined && this.currentTickets != null && currentTicket != undefined && currentTicket != null) {
                 this.currentTickets.setText(`Your Current Ticket: ${currentTicket}`);
@@ -2241,11 +2240,11 @@ class Circle extends Phaser.GameObjects.Sprite {
 
         const rnd =
             Math.random()
-            .toString(36)
-            .substring(2, 15) +
+                .toString(36)
+                .substring(2, 15) +
             Math.random()
-            .toString(36)
-            .substring(2, 15);
+                .toString(36)
+                .substring(2, 15);
 
         const graphics = scene.add.graphics();
         graphics.fillStyle(0x333333, 1);
@@ -2317,7 +2316,7 @@ class Circle extends Phaser.GameObjects.Sprite {
         setTimeout(function () {
             ball.setAwake(false);
         }, 1);
-        console.log(ball.isSleepingAllowed());
+        // console.log(ball.isSleepingAllowed());
     }
 
     awake() {
@@ -2326,7 +2325,7 @@ class Circle extends Phaser.GameObjects.Sprite {
         setTimeout(function () {
             ball.setAwake(true);
         }, 1);
-        console.log(ball.isSleepingAllowed());
+        // console.log(ball.isSleepingAllowed());
     }
 
     launchBall() {
@@ -2374,11 +2373,11 @@ class Bumper extends Phaser.GameObjects.Sprite {
 
         const rnd =
             Math.random()
-            .toString(36)
-            .substring(2, 15) +
+                .toString(36)
+                .substring(2, 15) +
             Math.random()
-            .toString(36)
-            .substring(2, 15);
+                .toString(36)
+                .substring(2, 15);
 
         const graphics = scene.add.graphics();
         graphics.fillStyle(0x333333, 1);
@@ -2484,11 +2483,11 @@ class Rectangle extends Phaser.GameObjects.Sprite {
 
         const rnd =
             Math.random()
-            .toString(36)
-            .substring(2, 15) +
+                .toString(36)
+                .substring(2, 15) +
             Math.random()
-            .toString(36)
-            .substring(2, 15);
+                .toString(36)
+                .substring(2, 15);
 
         const graphics = scene.add.graphics();
         graphics.fillStyle(0x333333, 1);
@@ -2590,15 +2589,15 @@ class Edge extends Phaser.GameObjects.Sprite {
                 planck.Vec2(this.x / 30, this.y / 30),
                 planck.Vec2(this.x2 / 30, this.y2 / 30)
             ), {
-                friction: 1,
-                restitution: 0.5,
-                density: 1,
-                userData: {
-                    label: label,
-                    isScore: true
-                },
-                filterGroupIndex: groupIndex,
-            }
+            friction: 1,
+            restitution: 0.5,
+            density: 1,
+            userData: {
+                label: label,
+                isScore: true
+            },
+            filterGroupIndex: groupIndex,
+        }
         );
 
         this.b.setMassData({
