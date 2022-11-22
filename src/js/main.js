@@ -1830,8 +1830,8 @@ class PlayGame extends Phaser.Scene {
     }
 
     gameOver() {
-        rightPaddle.setMotorSpeed(-20);
-        leftPaddle.setMotorSpeed(20);
+        this.jointRightPaddle.setMotorSpeed(-20);
+        this.jointLeftPaddle.setMotorSpeed(20);
         let scoreReformated = String(currentScore).replace(',', '');
         let score = parseInt(scoreReformated);
         this.scene.pause("PlayGame");
