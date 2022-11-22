@@ -908,6 +908,8 @@ class PlayGame extends Phaser.Scene {
             fontSize: 8 * window.devicePixelRatio,
             fill: "#FFFFFF"
         }
+        this.game.input.addPointer();
+        this.game.input.addPointer();
         let leftJoy = this.add.rectangle(0, 0, this.halfWidth, this.gameHeight, 0xfffffff, 0)
             .setDepth(2)
             .setInteractive()
@@ -916,12 +918,6 @@ class PlayGame extends Phaser.Scene {
                 leftPaddle.setMotorSpeed(-20);
             })
             .on('pointerup', function (e) {
-                leftPaddle.setMotorSpeed(20);
-            })
-            .on('touchstart', function (e) {
-                leftPaddle.setMotorSpeed(-20);
-            })
-            .on('touchend', function (e) {
                 leftPaddle.setMotorSpeed(20);
             });
 
@@ -933,12 +929,6 @@ class PlayGame extends Phaser.Scene {
                 rightPaddle.setMotorSpeed(20);
             })
             .on('pointerup', function (e) {
-                rightPaddle.setMotorSpeed(-20);
-            })
-            .on('touchstart', function (e) {
-                rightPaddle.setMotorSpeed(20);
-            })
-            .on('touchend', function (e) {
                 rightPaddle.setMotorSpeed(-20);
             });
 
@@ -1840,6 +1830,8 @@ class PlayGame extends Phaser.Scene {
     }
 
     gameOver() {
+        rightPaddle.setMotorSpeed(-20);
+        leftPaddle.setMotorSpeed(20);
         let scoreReformated = String(currentScore).replace(',', '');
         let score = parseInt(scoreReformated);
         this.scene.pause("PlayGame");
