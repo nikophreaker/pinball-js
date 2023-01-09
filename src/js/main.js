@@ -2006,17 +2006,17 @@ class Leaderboard extends Phaser.Scene {
                     }
                 }
             });
-        this.other = this.add.sprite(this.halfWidth, this.resume.y + (this.resume.displayHeight / 0.8), "icOther")
-            .setDepth(2)
-            .setScale(0.25 * dpr)
-            .setOrigin(0.5, 0.5)
-            .setInteractive()
-            .on('pointerdown', () => {
-                if (clickedAgain) {
-                    this.scene.stop("Leaderboard");
-                    this.game.destroy(true, false);
-                }
-            });
+        // this.other = this.add.sprite(this.halfWidth, this.resume.y + (this.resume.displayHeight / 0.8), "icOther")
+        //     .setDepth(2)
+        //     .setScale(0.25 * dpr)
+        //     .setOrigin(0.5, 0.5)
+        //     .setInteractive()
+        //     .on('pointerdown', () => {
+        //         if (clickedAgain) {
+        //             this.scene.stop("Leaderboard");
+        //             this.game.destroy(true, false);
+        //         }
+        //     });
         //GET USER DOC
         let docRef = doc(db, "pinball-leaderboard", String(this.userId));
         const queryUser = await getDoc(docRef);
