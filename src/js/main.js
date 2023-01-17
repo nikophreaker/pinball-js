@@ -1719,6 +1719,7 @@ class PlayGame extends Phaser.Scene {
 
     createBall() {
         // create ball
+        this.add.rectangle(this.halfWidth + (145 * dpr), this.halfHeight + (278 * dpr), (30 * dpr), (75 * dpr), 0x1C1A1A);
         this.ball = new Circle(this, this.halfWidth + (138 * dpr), this.halfHeight, "ball", 7 * dpr, true, true, false, "ballss", BALL_GROUP, 1);
         this.ball1 = new Circle(this, this.halfWidth + (145 * dpr), this.halfHeight + (278 * dpr), "ball", 7 * dpr, false, false, false, "ballss1", null, 1);
         this.ball2 = new Circle(this, this.halfWidth + (145 * dpr), this.halfHeight + (260 * dpr), "ball", 7 * dpr, false, false, false, "ballss2", null, 1);
@@ -2293,7 +2294,7 @@ class Circle extends Phaser.GameObjects.Sprite {
         // console.log(scene.world);
         // const init = img => {
         this.b.createFixture(planck.Circle(radius / 30), {
-            friction: 0.5,
+            friction: 0.25,
             restitution: 0,
             density: 7,
             isSensor: isSensor,
