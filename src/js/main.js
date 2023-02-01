@@ -220,7 +220,7 @@ class LobbyGame extends Phaser.Scene {
         /*
          *Load ASSET
          */
-        this.load.path = "../assets/img/";
+        this.load.path = "./assets/img/";
         this.load.image("btnStart", "btnStart.png");
         this.load.image("bgIntro", "bg_intro.jpg");
         this.load.image("bgStart", "bg_start.png");
@@ -459,7 +459,7 @@ class PlayGame extends Phaser.Scene {
             /*
              *Load ASSET
              */
-            this.load.path = "../assets/img/";
+            this.load.path = "./assets/img/";
             this.load.image("btnStart", "btnStart.png");
             this.load.image("bgIntro", "bg_intro.jpg");
             this.load.image("bgStart", "bg_start.png");
@@ -533,7 +533,7 @@ class PlayGame extends Phaser.Scene {
             this.load.json("shapes", "shapes.json");
 
             // Font
-            this.load.path = "../assets/font/";
+            this.load.path = "./assets/font/";
             this.load.bitmapFont(
                 'kanitBlack',
                 'Kanit-Black.png',
@@ -1973,7 +1973,7 @@ class Leaderboard extends Phaser.Scene {
         /*
          *Load ASSET
          */
-        this.load.path = "../assets/img/";
+        this.load.path = "./assets/img/";
         this.load.image("btnStart", "btnStart.png");
         this.load.image("bgIntro", "bg_intro.jpg");
         this.load.image("bgStart", "bg_start.png");
@@ -2248,7 +2248,7 @@ class Loading extends Phaser.Scene {
         /*
          *Load ASSET
          */
-        this.load.path = "../assets/img/";
+        this.load.path = "./assets/img/";
         this.load.spritesheet("loading", "loading_spritesheet.png", {
             frameWidth: this.halfWidth,
             frameHeight: 64 * dpr,
