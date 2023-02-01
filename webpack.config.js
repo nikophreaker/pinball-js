@@ -6,7 +6,7 @@ export default {
     mode: "production",
 
     // input file
-    entry: "./js/main.js",
+    entry: "./src/js/main.js",
 
     plugins: [
         new WebpackObfuscator({
