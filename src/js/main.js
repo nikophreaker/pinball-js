@@ -83,6 +83,7 @@ const subSteps = 3;
 const subDelta = delta / subSteps;
 var matterTimeStep = 16.666;
 var btnSpaceHold = false;
+var isFirst = true;
 
 //static variable
 var OBSTACLE = 0xFFFF;
@@ -362,15 +363,6 @@ class PlayGame extends Phaser.Scene {
     }
 
     init() {
-        // Init World
-        this.gravity = 3; // 3 is normal
-        // this.world = planck.World(planck.Vec2(0, this.gravity));
-        this.world = planck.World({
-            gravity: planck.Vec2(0, this.gravity),
-            allowSleep: true
-        });
-        currentScore = 0;
-        bufferScore = 0;
         //init scale window
         dpr = window.devicePixelRatio;
         scaleSprite = this.scaleWithRatioPixel(0);
@@ -402,152 +394,176 @@ class PlayGame extends Phaser.Scene {
     }
 
     preload() {
-        var progressBar = this.add.graphics();
-        var progressBox = this.add.graphics();
-        progressBox.fillStyle(0x222222, 0.8);
-        progressBox.fillRect(this.halfWidth - (320 / 2), this.halfHeight, 320, 50);
+        if (isFirst) {
+            var progressBar = this.add.graphics();
+            var progressBox = this.add.graphics();
+            progressBox.fillStyle(0x222222, 0.8);
+            progressBox.fillRect(this.halfWidth - (320 / 2), this.halfHeight, 320, 50);
 
-        var textLoading = this.make.text({
-            x: this.halfWidth,
-            y: this.halfHeight - (25 * dpr),
-            text: "Loading...",
-            style: {
-                fontFamily: "Arial Black",
-                fontSize: 12 * dpr,
-                fill: "#FFFFFF"
-            }
-        });
+            var textLoading = this.make.text({
+                x: this.halfWidth,
+                y: this.halfHeight - (25 * dpr),
+                text: "Loading...",
+                style: {
+                    fontFamily: "Arial Black",
+                    fontSize: 12 * dpr,
+                    fill: "#FFFFFF"
+                }
+            });
 
-        var percentText = this.make.text({
-            x: this.halfWidth,
-            y: this.halfHeight + (6.5 * dpr),
-            text: "0%",
-            style: {
-                fontFamily: "Arial Black",
-                fontSize: 12 * dpr,
-                fill: "#FFFFFF"
-            }
-        });
+            var percentText = this.make.text({
+                x: this.halfWidth,
+                y: this.halfHeight + (6.5 * dpr),
+                text: "0%",
+                style: {
+                    fontFamily: "Arial Black",
+                    fontSize: 12 * dpr,
+                    fill: "#FFFFFF"
+                }
+            });
 
-        var detailText = this.make.text({
-            x: this.halfWidth,
-            y: this.halfHeight + (30 * dpr),
-            text: "",
-            style: {
-                fontFamily: "Arial",
-                fontSize: 8 * dpr,
-                fill: "#FFFFFF"
-            }
-        });
+            var detailText = this.make.text({
+                x: this.halfWidth,
+                y: this.halfHeight + (30 * dpr),
+                text: "",
+                style: {
+                    fontFamily: "Arial",
+                    fontSize: 8 * dpr,
+                    fill: "#FFFFFF"
+                }
+            });
 
-        textLoading.setOrigin(0.5, 0.5);
-        percentText.setOrigin(0.5, 0.5);
-        detailText.setOrigin(0.5, 0.5);
+            textLoading.setOrigin(0.5, 0.5);
+            percentText.setOrigin(0.5, 0.5);
+            detailText.setOrigin(0.5, 0.5);
 
-        this.load.on("progress", function (value) {
-            progressBar.clear();
-            percentText.setText(parseInt(value * 100) + "%");
-            progressBar.clear();
-            progressBar.fillStyle(0xffffff, 1);
-            progressBar.fillRect((this.halfWidth - (300 / 2)), this.halfHeight + 10, 300 * value, 30);
-        });
-        this.load.on('fileprogress', function (file) {
-            detailText.setText('Loading asset: ' + file.key);
-        });
-        this.load.on("complete", function () {
-            progressBar.destroy();
-            progressBox.destroy();
-            textLoading.destroy();
-            percentText.destroy();
-        });
-        // this.load.plugin('rexmovetoplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexmovetoplugin.min.js', true);
+            this.load.on("progress", function (value) {
+                progressBar.clear();
+                percentText.setText(parseInt(value * 100) + "%");
+                progressBar.clear();
+                progressBar.fillStyle(0xffffff, 1);
+                progressBar.fillRect((this.halfWidth - (300 / 2)), this.halfHeight + 10, 300 * value, 30);
+            });
+            this.load.on('fileprogress', function (file) {
+                detailText.setText('Loading asset: ' + file.key);
+            });
+            this.load.on("complete", function () {
+                progressBar.destroy();
+                progressBox.destroy();
+                textLoading.destroy();
+                percentText.destroy();
+            });
+            // this.load.plugin('rexmovetoplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexmovetoplugin.min.js', true);
 
-        /*
-         *Load ASSET
-         */
-        this.load.path = "../assets/img/";
-        this.load.image("btnStart", "btnStart.png");
-        this.load.image("bgIntro", "bg_intro.jpg");
-        this.load.image("bgStart", "bg_start.png");
-        this.load.image("trigger", "trigger_top.png");
-        this.load.image("ball", "ball.png");
-        this.load.image("pegas", "pegas.png");
-        this.load.image("dome", "dome.png");
-        this.load.image("wall1", "wall1.png");
-        this.load.image("wall2", "wall2.png");
-        this.load.image("wall3", "wall3.png");
-        this.load.image("leftA", "left_a.png");
-        this.load.image("rightA", "right_a.png");
-        this.load.image("leftAhit", "left_a_hit.png");
-        this.load.image("rightAhit", "right_a_hit.png");
-        this.load.image("leftB", "left_b.png");
-        this.load.image("rightB", "right_b.png");
-        this.load.image("leftBhit", "left_b_hit.png");
-        this.load.image("rightBhit", "right_b_hit.png");
-        this.load.image("leftC", "left_c.png");
-        this.load.image("rightC", "right_c.png");
-        this.load.image("leftD", "left_d.png");
-        this.load.image("rightD", "right_d.png");
-        this.load.image("toggleLeft", "toggle_left.png");
-        this.load.image("toggleRight", "toggle_right.png");
-        this.load.image("bumper100", "bumper_100.png");
-        this.load.image("bumper200", "bumper_200.png");
-        this.load.image("bumper500", "bumper_500.png");
-        this.load.image("bumper100hit", "bumper_100_hit.png");
-        this.load.image("bumper200hit", "bumper_200_hit.png");
-        this.load.image("bumper500hit", "bumper_500_hit.png");
-        this.load.image("bumper5k", "bumper_5k.png");
-        this.load.image("bumper10k", "bumper_10k.png");
-        this.load.image("bumper20k", "bumper_20k.png");
-        this.load.image("bumper5khit", "bumper_5k_hit.png");
-        this.load.image("bumper10khit", "bumper_10k_hit.png");
-        this.load.image("bumper20khit", "bumper_20k_hit.png");
-        this.load.image("puck", "puck.png");
-        this.load.image("appronsLeft", "approns_left.png");
-        this.load.image("appronsRight", "approns_right.png");
-        this.load.image("closestopperLeft", "closestopperLeft.png");
-        this.load.image("closestopperRight", "closestopperRight.png");
-        this.load.image("stopper", "stopper.png");
-        this.load.image("bridge", "bridge.png");
-        this.load.image("entranceBridge", "entrance_bridge.png");
-        this.load.image("exitBridge", "exit_bridge.png");
-        this.load.image("topLedOff", "top_led_off.png");
-        this.load.image("topLedOn", "top_led_on.png");
-        this.load.image("top1", "top_1.png");
-        this.load.image("top2", "top_2.png");
-        this.load.image("top3", "top_3.png");
-        this.load.image("hole", "hole.png");
-        this.load.image("logo", "logo.png");
-        this.load.image("logo2", "logo2.png");
-        this.load.image("triangleOn", "triangle_on.png");
-        this.load.image("triangleOff", "triangle_off.png");
-        this.load.image("puckLedOn", "puck_led_on.png");
-        this.load.image("puckLedOff", "puck_led_off.png");
-        this.load.image("arrowLedBridge1Off", "arrow_led_bridge1.png");
-        this.load.image("arrowLedBridge1On", "arrow_led_bridge12.png");
-        this.load.image("arrowLedBridge2Off", "arrow_led_bridge2.png");
-        this.load.image("arrowLedBridge2On", "arrow_led_bridge22.png");
-        this.load.image("arrowLedBridge3Off", "arrow_led_bridge3.png");
-        this.load.image("arrowLedBridge3On", "arrow_led_bridge32.png");
-        this.load.image("arrowLedBridge4Off", "arrow_led_bridge4.png");
-        this.load.image("arrowLedBridge4On", "arrow_led_bridge42.png");
-        this.load.image("arrowLedBridge5Off", "arrow_led_bridge5.png");
-        this.load.image("arrowLedBridge5On", "arrow_led_bridge52.png");
-        this.load.image("bgPinball", "bg_pinball.png");
-        this.load.image("bonus", "bonus.png");
-        this.load.image("fieldBumper", "field_bumper.png");
-        this.load.json("shapes", "shapes.json");
+            /*
+             *Load ASSET
+             */
+            this.load.path = "../assets/img/";
+            this.load.image("btnStart", "btnStart.png");
+            this.load.image("bgIntro", "bg_intro.jpg");
+            this.load.image("bgStart", "bg_start.png");
+            this.load.image("trigger", "trigger_top.png");
+            this.load.image("ball", "ball.png");
+            this.load.image("pegas", "pegas.png");
+            this.load.image("dome", "dome.png");
+            this.load.image("wall1", "wall1.png");
+            this.load.image("wall2", "wall2.png");
+            this.load.image("wall3", "wall3.png");
+            this.load.image("leftA", "left_a.png");
+            this.load.image("rightA", "right_a.png");
+            this.load.image("leftAhit", "left_a_hit.png");
+            this.load.image("rightAhit", "right_a_hit.png");
+            this.load.image("leftB", "left_b.png");
+            this.load.image("rightB", "right_b.png");
+            this.load.image("leftBhit", "left_b_hit.png");
+            this.load.image("rightBhit", "right_b_hit.png");
+            this.load.image("leftC", "left_c.png");
+            this.load.image("rightC", "right_c.png");
+            this.load.image("leftD", "left_d.png");
+            this.load.image("rightD", "right_d.png");
+            this.load.image("toggleLeft", "toggle_left.png");
+            this.load.image("toggleRight", "toggle_right.png");
+            this.load.image("bumper100", "bumper_100.png");
+            this.load.image("bumper200", "bumper_200.png");
+            this.load.image("bumper500", "bumper_500.png");
+            this.load.image("bumper100hit", "bumper_100_hit.png");
+            this.load.image("bumper200hit", "bumper_200_hit.png");
+            this.load.image("bumper500hit", "bumper_500_hit.png");
+            this.load.image("bumper5k", "bumper_5k.png");
+            this.load.image("bumper10k", "bumper_10k.png");
+            this.load.image("bumper20k", "bumper_20k.png");
+            this.load.image("bumper5khit", "bumper_5k_hit.png");
+            this.load.image("bumper10khit", "bumper_10k_hit.png");
+            this.load.image("bumper20khit", "bumper_20k_hit.png");
+            this.load.image("puck", "puck.png");
+            this.load.image("appronsLeft", "approns_left.png");
+            this.load.image("appronsRight", "approns_right.png");
+            this.load.image("closestopperLeft", "closestopperLeft.png");
+            this.load.image("closestopperRight", "closestopperRight.png");
+            this.load.image("stopper", "stopper.png");
+            this.load.image("bridge", "bridge.png");
+            this.load.image("entranceBridge", "entrance_bridge.png");
+            this.load.image("exitBridge", "exit_bridge.png");
+            this.load.image("topLedOff", "top_led_off.png");
+            this.load.image("topLedOn", "top_led_on.png");
+            this.load.image("top1", "top_1.png");
+            this.load.image("top2", "top_2.png");
+            this.load.image("top3", "top_3.png");
+            this.load.image("hole", "hole.png");
+            this.load.image("logo", "logo.png");
+            this.load.image("logo2", "logo2.png");
+            this.load.image("triangleOn", "triangle_on.png");
+            this.load.image("triangleOff", "triangle_off.png");
+            this.load.image("puckLedOn", "puck_led_on.png");
+            this.load.image("puckLedOff", "puck_led_off.png");
+            this.load.image("arrowLedBridge1Off", "arrow_led_bridge1.png");
+            this.load.image("arrowLedBridge1On", "arrow_led_bridge12.png");
+            this.load.image("arrowLedBridge2Off", "arrow_led_bridge2.png");
+            this.load.image("arrowLedBridge2On", "arrow_led_bridge22.png");
+            this.load.image("arrowLedBridge3Off", "arrow_led_bridge3.png");
+            this.load.image("arrowLedBridge3On", "arrow_led_bridge32.png");
+            this.load.image("arrowLedBridge4Off", "arrow_led_bridge4.png");
+            this.load.image("arrowLedBridge4On", "arrow_led_bridge42.png");
+            this.load.image("arrowLedBridge5Off", "arrow_led_bridge5.png");
+            this.load.image("arrowLedBridge5On", "arrow_led_bridge52.png");
+            this.load.image("bgPinball", "bg_pinball.png");
+            this.load.image("bonus", "bonus.png");
+            this.load.image("fieldBumper", "field_bumper.png");
+            this.load.json("shapes", "shapes.json");
 
-        // Font
-        this.load.path = "../assets/font/";
-        this.load.bitmapFont(
-            'kanitBlack',
-            'Kanit-Black.png',
-            'Kanit-Black.xml'
-        );
+            // Font
+            this.load.path = "../assets/font/";
+            this.load.bitmapFont(
+                'kanitBlack',
+                'Kanit-Black.png',
+                'Kanit-Black.xml'
+            );
+        }
     }
 
     async create() {
+
+        // Init World
+        this.gravity = 3; // 3 is normal
+        // this.world = planck.World(planck.Vec2(0, this.gravity));
+        this.world = planck.World({
+            gravity: planck.Vec2(0, this.gravity),
+            allowSleep: true
+        });
+        currentScore = 0;
+        bufferScore = 0;
+
+        this.events.on("resume", (scene, data) => {
+            if (data.reset) {
+                this.load.removeAllListeners();
+                this.input.removeAllListeners();
+                this.world.off("begin-contact");
+                this.world.off("end-contact");
+                this.scene.restart();
+                console.log("RESTART");
+            }
+        })
+
         this.shapes = this.cache.json.get('shapes');
 
         this.add.image(this.halfWidth - (3 * dpr), this.halfHeight + (11 * dpr), 'bgPinball', null, {
@@ -887,19 +903,23 @@ class PlayGame extends Phaser.Scene {
         this.leftBtn = this.input.keyboard.addKey("LEFT");
         this.leftBtn.on("down", function () {
             leftPaddle.setMotorSpeed(-20);
+            // console.log("LEFT BTN DOWN");
         }, this);
         this.leftBtn.on("up", function () {
             leftPaddle.setMotorSpeed(20);
+            // console.log("LEFT BTN UP");
         }, this);
 
         let rightPaddle = this.jointRightPaddle;
         this.rightBtn = this.input.keyboard.addKey("RIGHT");
         this.rightBtn.on("down", function () {
             rightPaddle.setMotorSpeed(20);
+            // console.log("RIGHT BTN DOWN");
         }, this);
 
         this.rightBtn.on("up", function () {
             rightPaddle.setMotorSpeed(-20);
+            // console.log("RIGHT BTN UP");
         }, this);
 
         // make controller virtual
@@ -1831,14 +1851,14 @@ class PlayGame extends Phaser.Scene {
     }
 
     gameOver() {
-        this.jointRightPaddle.setMotorSpeed(-20);
-        this.jointLeftPaddle.setMotorSpeed(20);
+        // this.jointRightPaddle.setMotorSpeed(-20);
+        // this.jointLeftPaddle.setMotorSpeed(20);
         let scoreReformated = String(currentScore).replace(',', '');
         let score = parseInt(scoreReformated);
         this.scene.pause("PlayGame");
         getUserProfile()
             .then(() => {
-                this.scene.launch("Leaderboard", {
+                this.scene.start("Leaderboard", {
                     isGameOver: true,
                     userId: userId,
                     name: username,
@@ -1848,7 +1868,7 @@ class PlayGame extends Phaser.Scene {
             .catch(err => {
                 console.log(err);
             });
-        currentScore = 0;
+        // currentScore = 0;
     }
 
     update(timestamp, dt) {
@@ -1897,8 +1917,9 @@ class PlayGame extends Phaser.Scene {
         // } else {
         //     this.world.step(1 / 16, 3, 3);
         // }
-        this.world.step(1 / dt);
-        console.log(dt);
+        this.world.step(1 / 12, 3, 3);
+        // this.world.step(1 / dt);
+        // console.log(dt);
         // this.world.step(1 / 16, 10, 8);
         // console.log(this.game.loop.delta);
         // console.log(this.game.loop.actualFps);
@@ -1991,7 +2012,10 @@ class Leaderboard extends Phaser.Scene {
                             .then(val => {
                                 if (val) {
                                     clickedAgain = true;
-                                    this.scene.resume("PlayGame");
+                                    isFirst = false;
+                                    this.scene.resume("PlayGame", {
+                                        reset: true
+                                    });
                                     this.scene.stop("Leaderboard");
                                 } else {
                                     clickedAgain = true;
@@ -2004,7 +2028,9 @@ class Leaderboard extends Phaser.Scene {
                                 clickedAgain = true;
                             });
                     } else {
-                        this.scene.resume("PlayGame");
+                        this.scene.resume("PlayGame", {
+                            reset: false
+                        });
                         this.scene.stop("Leaderboard");
                     }
                 }
