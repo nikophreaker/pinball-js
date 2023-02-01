@@ -1892,11 +1892,13 @@ class PlayGame extends Phaser.Scene {
             lastScoreWidth = this.textScore.width;
         }
         // advance the simulation by 1/20 seconds
-        if (dt < 10) {
-            this.world.step(1 / 30, 3, 3);
-        } else {
-            this.world.step(1 / 16, 3, 3);
-        }
+        // if (dt < 10) {
+        //     this.world.step(1 / 30, 3, 3);
+        // } else {
+        //     this.world.step(1 / 16, 3, 3);
+        // }
+        this.world.step(1 / dt);
+        console.log(dt);
         // this.world.step(1 / 16, 10, 8);
         // console.log(this.game.loop.delta);
         // console.log(this.game.loop.actualFps);
