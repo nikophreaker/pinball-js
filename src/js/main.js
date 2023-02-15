@@ -116,7 +116,7 @@ const database = getDatabase(app);
 // Initialize Firestore Database and get document
 const db = getFirestore(app);
 const col = "pinball-m88-leaderboard";
-const col2 = "kupon";
+const col2 = "kupon-pinball";
 const colRef = collection(db, col);
 const colRef2 = collection(db, col2);
 
