@@ -51,7 +51,8 @@ const MAX_VELOCITY = 50;
 
 // shared variables
 var currentTicket, userId, username;
-let dpr, scaleSprite;
+let dpr = window.devicePixelRatio;
+let scaleSprite;
 let currentScore, highScore, bufferScore;
 let fieldBumper, fieldBumper2;
 let engine, world, render, pinball, stopperGroup;
@@ -175,8 +176,8 @@ window.onload = function () {
             mode: Phaser.Scale.FIT,
             autoCenter: Phaser.Scale.CENTER_BOTH,
             parent: "canvas",
-            width: 305.5 * window.devicePixelRatio,
-            height: 624 * window.devicePixelRatio,
+            width: 305.5 * dpr,
+            height: 624 * dpr,
         },
         dom: {
             createContainer: true
@@ -195,11 +196,10 @@ class LobbyGame extends Phaser.Scene {
 
     // scaling sprite atau lainnya dengan mempertahankan ratio pixel
     scaleWithRatioPixel(offset) {
-        return ((1 * window.devicePixelRatio) / 4) - offset;
+        return ((1 * dpr) / 4) - offset;
     }
 
     init() {
-        dpr = window.devicePixelRatio;
         scaleSprite = this.scaleWithRatioPixel(0);
 
         window.mobileCheck = function () {
@@ -293,8 +293,6 @@ class LobbyGame extends Phaser.Scene {
     }
 
     async createPlay() {
-        // console.log(`DPR: ${window.devicePixelRatio}`);
-        // console.log(this.scaleWithRatioPixel(0));
         this.bgIntro = this.add.sprite(this.gameWidth / 2, this.gameHeight / 2, "bgIntro");
         this.btnStart = this.add.sprite(this.gameWidth / 2, this.gameHeight / 1.5, "btnStart")
             .setScale(this.scaleWithRatioPixel(0.1));
@@ -360,12 +358,11 @@ class PlayGame extends Phaser.Scene {
 
     // scaling sprite atau lainnya dengan mempertahankan ratio pixel
     scaleWithRatioPixel(offset) {
-        return ((1 * window.devicePixelRatio) / 4) - offset;
+        return ((1 * dpr) / 4) - offset;
     }
 
     init() {
         //init scale window
-        dpr = window.devicePixelRatio;
         scaleSprite = this.scaleWithRatioPixel(0);
 
         window.mobileCheck = function () {
@@ -543,7 +540,8 @@ class PlayGame extends Phaser.Scene {
     }
 
     async create() {
-
+        console.log(`DPR: ${dpr}`);
+        console.log(this.scaleWithRatioPixel(0));
         // Init World
         this.gravity = 3; // 3 is normal
         // this.world = planck.World(planck.Vec2(0, this.gravity));
@@ -926,7 +924,7 @@ class PlayGame extends Phaser.Scene {
         // make controller virtual
         let style = {
             fontFamily: "Arial Black",
-            fontSize: 8 * window.devicePixelRatio,
+            fontSize: 8 * dpr,
             fill: "#FFFFFF"
         }
         this.game.input.addPointer();
@@ -2726,7 +2724,6 @@ class Poly extends Phaser.GameObjects.Sprite {
         // console.log(`width2 : ${width}`);
         // console.log(`height : ${this.height}`);
         // console.log(`height2 : ${height}`);
-        // const assetsDPR = window.devicePixelRatio;
         this.scale = scaleSprite;
         // this.setDisplaySize(width, height);
         // this.setScale(assetsDPR / 10, assetsDPR / 10);
@@ -2850,7 +2847,6 @@ class ChainShape extends Phaser.GameObjects.Sprite {
         const width = bbox.w;
         const height = bbox.h;
         // this.setDisplayOrigin(bbox.x, bbox.y);
-        // const assetsDPR = window.devicePixelRatio;
         // this.scale = scale;
         // this.setScale(0.8);
         // this.setScale(assetsDPR / 10, assetsDPR / 10);
@@ -2973,7 +2969,6 @@ class OtherBumper extends Phaser.GameObjects.Sprite {
         const width = bbox.w;
         const height = bbox.h;
         // this.setDisplayOrigin(bbox.x, bbox.y);
-        // const assetsDPR = window.devicePixelRatio;
         // this.scale = scale;
         // this.setScale(0.8);
         // this.setScale(assetsDPR / 10, assetsDPR / 10);
