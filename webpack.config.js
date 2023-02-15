@@ -19,7 +19,7 @@ export default {
     plugins: [
         new WebpackObfuscator({
             rotateStringArray: true
-        }, ['./src/js/bundle.js'])
+        }, [])
     ],
 
     // output file
