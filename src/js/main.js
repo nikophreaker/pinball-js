@@ -246,7 +246,7 @@ class InputData extends Phaser.Scene {
                 } else {
                     querySnapshot.forEach(async (docs) => {
                         let data = docs.data();
-                        const docChange = doc(db, "kupon", `${data.id}`);
+                        const docChange = doc(db, col2, `${data.id}`);
                         await updateDoc(docChange, {
                             active: false
                         });
