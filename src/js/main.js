@@ -2488,7 +2488,7 @@ class Bumper extends Phaser.GameObjects.Sprite {
         // const init = img => {
         this.b.createFixture(planck.Circle(radius / 30), {
             friction: 0.5,
-            restitution: 1,
+            restitution: 1.5,
             density: 1,
             userData: {
                 label: label,
