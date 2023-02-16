@@ -239,7 +239,7 @@ class InputData extends Phaser.Scene {
             let txt2 = inputText2.text
             // GET KODE DATA
             if (txt != "" && txt != undefined && txt != null) {
-                if (txt != "" && txt != undefined && txt != null) {
+                if (txt2 != "" && txt2 != undefined && txt2 != null) {
                     username = txt;
                     userId = txt2;
                     world.scene.resume("LobbyGame");
