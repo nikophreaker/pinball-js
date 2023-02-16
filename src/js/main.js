@@ -227,7 +227,7 @@ class InputData extends Phaser.Scene {
         }, this);
 
         let world = this;
-        this.btnOk = this.add.sprite(this.halfWidth, this.halfHeight + (95 * dpr), "okButton");
+        this.btnOk = this.add.sprite(this.halfWidth, this.halfHeight + (100 * dpr), "okButton");
         this.btnOk.setScale(0.15 * dpr);
         this.btnOk.setInteractive();
         this.btnOk.on("pointerover", function () {
