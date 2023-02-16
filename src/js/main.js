@@ -239,22 +239,13 @@ class InputData extends Phaser.Scene {
             let txt2 = inputText2.text
             // GET KODE DATA
             if (txt != "" && txt != undefined && txt != null) {
-                const q = query(colRef2, where("kode", "==", txt2), where("active", "==", true));
-                const querySnapshot = await getDocs(q);
-                if (querySnapshot.size == 0) {
-                    alert("Kode tidak ditemukan!");
+                if (txt != "" && txt != undefined && txt != null) {
+                    username = txt;
+                    userId = txt2;
+                    world.scene.resume("LobbyGame");
+                    world.scene.stop("InputData");
                 } else {
-                    querySnapshot.forEach(async (docs) => {
-                        let data = docs.data();
-                        const docChange = doc(db, col2, `${data.id}`);
-                        await updateDoc(docChange, {
-                            active: false
-                        });
-                        username = txt;
-                        userId = txt2;
-                        world.scene.resume("LobbyGame");
-                        world.scene.stop("InputData");
-                    });
+                    alert("Email tidak boleh kosong!");
                 }
             } else {
                 alert("Nama tidak boleh kosong!");
