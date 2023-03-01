@@ -154,7 +154,7 @@ window.onload = function () {
         dom: {
             createContainer: true
         },
-        backgroundColor: //0xD30000,
+        backgroundColor: 0x2A3141, //0xD30000,
         scene: [LobbyGame, InputData, PlayGame, Leaderboard, Loading]
     };
     var game = new Phaser.Game(gameConfig);
