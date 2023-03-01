@@ -2111,7 +2111,7 @@ class Leaderboard extends Phaser.Scene {
         querySnapshot.forEach((doc) => {
             // doc.data() is never undefined for query doc snapshots
             // console.log(doc.id, " => ", doc.data());
-            let name = doc.data().name.length > 8 ? doc.data().name.substring(0, 7) : doc.data().name;
+            let name = doc.data().name.length > 8 ? doc.data().name.substring(0, 11) : doc.data().name;
             let score = String(doc.data().score).replace(/(.)(?=(\d{3})+$)/g, '$1,');
             if (this.userId == doc.id) {
                 userInHighest = true;
@@ -2182,7 +2182,7 @@ class Leaderboard extends Phaser.Scene {
             //GET USER QUERY AFTER UPDATE (Not in Highest)
             const queryUser2 = await getDoc(docRef);
             if (queryUser2.exists()) {
-                let name = queryUser2.data().name.length > 8 ? doc.data().name.substring(0, 7) : queryUser2.data().name;
+                let name = queryUser2.data().name.length > 8 ? doc.data().name.substring(0, 11) : queryUser2.data().name;
                 let score = String(queryUser2.data().score).replace(/(.)(?=(\d{3})+$)/g, '$1,');
                 this.add.graphics()
                     .fillStyle(0xF7D013, 0.4)
