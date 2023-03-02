@@ -1916,7 +1916,7 @@ class PlayGame extends Phaser.Scene {
         // } else {
         //     this.world.step(1 / 16, 3, 3);
         // }
-        this.world.step(1 / 12, 3, 3);
+        this.world.step((1 / 12) * (85 / 100), 3, 3);
         // this.world.step(1 / dt);
         // console.log(dt);
         // this.world.step(1 / 16, 10, 8);
