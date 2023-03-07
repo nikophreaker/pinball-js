@@ -214,6 +214,7 @@ class InputData extends Phaser.Scene {
             borderColor: 'transparent',
             outline: 'none',
             direction: 'ltr',
+            type: 'number',
         });
 
         let inputText = this.inputText;
