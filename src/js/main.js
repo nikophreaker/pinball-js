@@ -255,7 +255,7 @@ class InputData extends Phaser.Scene {
                             await setDoc(docRef, {
                                 name: username,
                                 notelp: userId,
-                                score: 1000,
+                                score: 0,
                                 date: tglIndonesia(),
                                 timestamp: Math.floor(Date.now() / 1000),
                             }).then(()=>{
