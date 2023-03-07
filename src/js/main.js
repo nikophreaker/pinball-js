@@ -242,8 +242,31 @@ class InputData extends Phaser.Scene {
                 if (txt2 != "" && txt2 != undefined && txt2 != null) {
                     username = txt;
                     userId = txt2;
-                    world.scene.resume("LobbyGame");
-                    world.scene.stop("InputData");
+
+                    //GET USER DOC
+                    let docRef = doc(db, col, String(userId));
+                    let q = query(colRef, where("name", "==", String(username)));
+                    let data = await getDocs(q);
+                    if (data.size == 0 ) {
+                        let q = query(colRef, where("notelp", "==", String(userId)));
+                        let data = await getDocs(q);
+                        if (data.size == 0 ) {
+                            await setDoc(docRef, {
+                                name: username,
+                                notelp: userId,
+                                score: 1000,
+                                date: tglIndonesia(),
+                                timestamp: Math.floor(Date.now() / 1000),
+                            }).then(()=>{
+                                world.scene.resume("LobbyGame");
+                                world.scene.stop("InputData");
+                            });
+                        } else {
+                            alert(`Nomor ${userId} sudah terdaftar`);
+                        }
+                    } else {
+                        alert(`Nama ${username} sudah terdaftar`);
+                    }
                 } else {
                     alert("Email tidak boleh kosong!");
                 }
