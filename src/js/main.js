@@ -183,7 +183,7 @@ class InputData extends Phaser.Scene {
 
     preload() {
         this.load.path = "./assets/img/";
-        this.load.image("bgDialog", "fieldvoucher.png");
+        this.load.image("bgDialog", "fieldvoucher1.png");
         this.load.image("okButton", "okButton.png");
         this.load.plugin('rexinputtextplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexinputtextplugin.min.js', true);
     }
@@ -287,7 +287,7 @@ class LobbyGame extends Phaser.Scene {
          */
         this.load.path = "./assets/img/";
         this.load.image("btnStart", "btnStart.png");
-        this.load.image("bgIntro", "bg_intro.jpg");
+        this.load.image("bgIntro", "bg_intro1.jpg");
         this.load.image("bgStart", "bg_start.png");
 
         var progressBar = this.add.graphics();
