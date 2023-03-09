@@ -186,9 +186,13 @@ class InputData extends Phaser.Scene {
         this.load.image("bgDialog", "fieldvoucher.png");
         this.load.image("okButton", "okButton.png");
         this.load.plugin('rexinputtextplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexinputtextplugin.min.js', true);
+        this.load.path = "./assets/audio/";
+        this.load.audio("clickedBtn", "click.mp3");
     }
 
     async create() {
+        let click1 = true;
+        let clicked = this.sound.add("clickedBtn");
         this.add.graphics().setDepth(0).fillStyle(0x000000, 0.8).fillRect(0, 0, this.gameWidth, this.gameHeight);
         var dialogBg = this.add.sprite(this.halfWidth, this.halfHeight, "bgDialog");
         dialogBg.setScale(0.25 * dpr);
@@ -236,43 +240,52 @@ class InputData extends Phaser.Scene {
         this.btnOk.on("pointerout", function () {
         });
         this.btnOk.on("pointerdown", async function () {
-            let txt = inputText.text
-            let txt2 = inputText2.text
-            // GET KODE DATA
-            if (txt != "" && txt != undefined && txt != null) {
-                if (txt2 != "" && txt2 != undefined && txt2 != null) {
-                    username = txt;
-                    userId = txt2;
+            if (click1) {
+                click1 = false;
+                clicked.play();
+                let txt = inputText.text
+                let txt2 = inputText2.text
+                // GET KODE DATA
+                if (txt != "" && txt != undefined && txt != null) {
+                    if (txt2 != "" && txt2 != undefined && txt2 != null) {
+                        username = txt;
+                        userId = txt2;
 
-                    //GET USER DOC
-                    let docRef = doc(db, col, String(userId));
-                    let q = query(colRef, where("name", "==", String(username)));
-                    let data = await getDocs(q);
-                    if (data.size == 0 ) {
-                        let q = query(colRef, where("notelp", "==", String(userId)));
+                        //GET USER DOC
+                        let docRef = doc(db, col, String(userId));
+                        let q = query(colRef, where("name", "==", String(username)));
                         let data = await getDocs(q);
                         if (data.size == 0 ) {
-                            await setDoc(docRef, {
-                                name: username,
-                                notelp: userId,
-                                score: 0,
-                                date: tglIndonesia(),
-                                timestamp: Math.floor(Date.now() / 1000),
-                            }).then(()=>{
-                                world.scene.resume("LobbyGame");
-                                world.scene.stop("InputData");
-                            });
+                            let q = query(colRef, where("notelp", "==", String(userId)));
+                            let data = await getDocs(q);
+                            if (data.size == 0 ) {
+                                await setDoc(docRef, {
+                                    name: username,
+                                    notelp: userId,
+                                    score: 0,
+                                    date: tglIndonesia(),
+                                    timestamp: Math.floor(Date.now() / 1000),
+                                }).then(()=>{
+                                    click1 = true;
+                                    world.scene.resume("LobbyGame");
+                                    world.scene.stop("InputData");
+                                });
+                            } else {
+                                click1 = true;
+                                alert(`Nomor ${userId} sudah terdaftar`);
+                            }
                         } else {
-                            alert(`Nomor ${userId} sudah terdaftar`);
+                            click1 = true;
+                            alert(`Nama ${username} sudah terdaftar`);
                         }
                     } else {
-                        alert(`Nama ${username} sudah terdaftar`);
+                        click1 = true;
+                        alert("Email tidak boleh kosong!");
                     }
                 } else {
-                    alert("Email tidak boleh kosong!");
+                    click1 = true;
+                    alert("Nama tidak boleh kosong!");
                 }
-            } else {
-                alert("Nama tidak boleh kosong!");
             }
         });
     }
