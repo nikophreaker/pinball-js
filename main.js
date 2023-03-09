@@ -182,11 +182,11 @@ class InputData extends Phaser.Scene {
     }
 
     preload() {
-        this.load.path = "./assets/img/";
+        this.load.path = "./src/assets/img/";
         this.load.image("bgDialog", "fieldvoucher1.png");
         this.load.image("okButton", "okButton.png");
         this.load.plugin('rexinputtextplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexinputtextplugin.min.js', true);
-        this.load.path = "./assets/audio/";
+        this.load.path = "./src/assets/audio/";
         this.load.audio("clickedBtn", "click.mp3");
     }
 
@@ -322,7 +322,7 @@ class LobbyGame extends Phaser.Scene {
         /*
          *Load ASSET
          */
-        this.load.path = "./assets/img/";
+        this.load.path = "./src/assets/img/";
         this.load.image("btnStart", "btnStart.png");
         this.load.image("bgIntro", "bg_intro1.jpg");
         this.load.image("bgStart", "bg_start.png");
@@ -543,7 +543,7 @@ class PlayGame extends Phaser.Scene {
             /*
              *Load ASSET
              */
-            this.load.path = "./assets/img/";
+            this.load.path = "./src/assets/img/";
             this.load.image("btnStart", "btnStart.png");
             this.load.image("bgIntro", "bg_intro.jpg");
             this.load.image("bgStart", "bg_start.png");
@@ -617,7 +617,7 @@ class PlayGame extends Phaser.Scene {
             this.load.json("shapes", "shapes.json");
 
             // Font
-            this.load.path = "./assets/font/";
+            this.load.path = "./src/assets/font/";
             this.load.bitmapFont(
                 'kanitBlack',
                 'Kanit-Black.png',
@@ -2056,7 +2056,7 @@ class Leaderboard extends Phaser.Scene {
         /*
          *Load ASSET
          */
-        this.load.path = "./assets/img/";
+        this.load.path = "./src/assets/img/";
         this.load.image("btnStart", "btnStart.png");
         this.load.image("bgIntro", "bg_intro.jpg");
         this.load.image("bgStart", "bg_start.png");
@@ -2311,7 +2311,7 @@ class Loading extends Phaser.Scene {
         /*
          *Load ASSET
          */
-        this.load.path = "./assets/img/";
+        this.load.path = "./src/assets/img/";
         this.load.spritesheet("loading", "loading_spritesheet.png", {
             frameWidth: this.halfWidth,
             frameHeight: 64 * dpr,
