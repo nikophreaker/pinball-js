@@ -6,7 +6,7 @@ import {
 const __filename = fileURLToPath(
     import.meta.url);
 const __dirname = path.dirname(__filename);
-const DIST_DIR = path.join(__dirname, '/src/js/');
+const DIST_DIR = path.join(__dirname, '/dist/');
 
 export default {
 

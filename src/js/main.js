@@ -183,7 +183,7 @@ class InputData extends Phaser.Scene {
 
     preload() {
         this.load.path = "./assets/img/";
-        this.load.image("bgDialog", "fieldvoucher.png");
+        this.load.image("bgDialog", "fieldvoucher1.png");
         this.load.image("okButton", "okButton.png");
         this.load.plugin('rexinputtextplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexinputtextplugin.min.js', true);
         this.load.path = "./assets/audio/";
@@ -324,7 +324,7 @@ class LobbyGame extends Phaser.Scene {
          */
         this.load.path = "./assets/img/";
         this.load.image("btnStart", "btnStart.png");
-        this.load.image("bgIntro", "bg_intro.jpg");
+        this.load.image("bgIntro", "bg_intro1.jpg");
         this.load.image("bgStart", "bg_start.png");
 
         var progressBar = this.add.graphics();
@@ -2219,15 +2219,19 @@ class Leaderboard extends Phaser.Scene {
             //GET USER QUERY AFTER UPDATE (Not in Highest)
             const queryUser2 = await getDoc(docRef);
             if (queryUser2.exists()) {
-                let name = queryUser2.data().name.length > 8 ? doc.data().name.substring(0, 11) : queryUser2.data().name;
+                let name = queryUser2.data().name.length > 8 ? queryUser2.data().name.substring(0, 11) : queryUser2.data().name;
                 let score = String(queryUser2.data().score).replace(/(.)(?=(\d{3})+$)/g, '$1,');
                 this.add.graphics()
+                    .fillStyle(0x000000, 1)
+                    .fillRect(this.halfWidth - (85 * dpr), (this.halfHeight - (95 * dpr)) + (rowWidth * dpr), (175 * dpr), (2 * dpr))
+                    .setDepth(2);
+                this.add.graphics()
                     .fillStyle(0xF7D013, 0.4)
-                    .fillRect(this.halfWidth - (85 * dpr), (this.halfHeight - (95 * dpr)) + (rowWidth * dpr), (175 * dpr), (10 * dpr))
+                    .fillRect(this.halfWidth - (85 * dpr), (this.halfHeight - (95 * dpr)) + ((rowWidth * dpr) + (5 * dpr)), (175 * dpr), (10 * dpr))
                     .setDepth(2);
                 this.rank = this.make.text({
                     x: this.halfWidth - (70 * dpr),
-                    y: (this.halfHeight - (90 * dpr)) + (rowWidth * dpr),
+                    y: (this.halfHeight - (90 * dpr)) + ((rowWidth * dpr) + (5 * dpr)),
                     text: "0",
                     padding: {
                         left: 5,
@@ -2245,7 +2249,7 @@ class Leaderboard extends Phaser.Scene {
 
                 this.name = this.make.text({
                     x: this.halfWidth - (40 * dpr),
-                    y: (this.halfHeight - (90 * dpr)) + (rowWidth * dpr),
+                    y: (this.halfHeight - (90 * dpr)) + ((rowWidth * dpr) + (5 * dpr)),
                     text: "0",
                     padding: {
                         left: 5,
@@ -2263,7 +2267,7 @@ class Leaderboard extends Phaser.Scene {
 
                 this.score = this.make.text({
                     x: this.halfWidth + (35 * dpr),
-                    y: (this.halfHeight - (90 * dpr)) + (rowWidth * dpr),
+                    y: (this.halfHeight - (90 * dpr)) + ((rowWidth * dpr) + (5 * dpr)),
                     text: "0",
                     padding: {
                         left: 5,
