@@ -195,23 +195,26 @@ class InputData extends Phaser.Scene {
         let clicked = this.sound.add("clickedBtn");
         this.add.graphics().setDepth(0).fillStyle(0x000000, 0.8).fillRect(0, 0, this.gameWidth, this.gameHeight);
         var dialogBg = this.add.sprite(this.halfWidth, this.halfHeight, "bgDialog");
-        dialogBg.setScale(0.25 * dpr);
-        this.inputText = this.add.rexInputText(this.halfWidth, this.halfHeight + (25 * dpr), 120 * dpr, 35 * dpr, {
+        dialogBg.setScale(0.35 * dpr);
+        this.inputText = this.add.rexInputText(this.halfWidth, this.halfHeight + (35 * dpr), 200 * dpr, 35 * dpr, {
             // Style properties
             align: "center",
-            fontSize: `${12 * dpr}px`,
+            fontSize: `${14 * dpr}px`,
             color: '#ffffff',
+            fontStyle: 'bold',
             border: 0,
             backgroundColor: 'transparent',
             borderColor: 'transparent',
             outline: 'none',
             direction: 'ltr',
+            placeholder: 'MASUKKAN USERNAME'
         });
 
-        this.inputText2 = this.add.rexInputText(this.halfWidth, this.halfHeight + (62 * dpr), 120 * dpr, 35 * dpr, {
+        this.inputText2 = this.add.rexInputText(this.halfWidth, this.halfHeight + (88 * dpr), 200 * dpr, 35 * dpr, {
             // Style properties
             align: "center",
-            fontSize: `${12 * dpr}px`,
+            fontSize: `${14 * dpr}px`,
+            fontStyle: 'bold',
             color: '#ffffff',
             border: 0,
             backgroundColor: 'transparent',
@@ -219,6 +222,7 @@ class InputData extends Phaser.Scene {
             outline: 'none',
             direction: 'ltr',
             type: 'number',
+            placeholder: 'MASUKKAN NO. HP'
         });
 
         let inputText = this.inputText;
@@ -232,8 +236,8 @@ class InputData extends Phaser.Scene {
         }, this);
 
         let world = this;
-        this.btnOk = this.add.sprite(this.halfWidth, this.halfHeight + (100 * dpr), "okButton");
-        this.btnOk.setScale(0.15 * dpr);
+        this.btnOk = this.add.sprite(this.halfWidth, this.halfHeight + (140 * dpr), "okButton");
+        this.btnOk.setScale(0.2 * dpr);
         this.btnOk.setInteractive();
         this.btnOk.on("pointerover", function () {
         });
