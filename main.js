@@ -2130,13 +2130,13 @@ class Leaderboard extends Phaser.Scene {
         if (queryUser.exists()) {
             await setDoc(docRef, {
                 name: this.username,
+                notelp: this.userId,
                 score: this.userScore > queryUser.data().score ? this.userScore : queryUser.data().score,
                 date: tglIndonesia(),
                 timestamp: Math.floor(Date.now() / 1000),
             });
         } else {
-            await setDoc(docRef, {
-                name: this.username,
+            await updateDoc(docRef, {
                 score: this.userScore,
                 date: tglIndonesia(),
                 timestamp: Math.floor(Date.now() / 1000),
