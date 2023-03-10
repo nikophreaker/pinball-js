@@ -2236,7 +2236,7 @@ class Leaderboard extends Phaser.Scene {
                 this.rank = this.make.text({
                     x: this.halfWidth - (70 * dpr),
                     y: (this.halfHeight - (90 * dpr)) + ((rowWidth * dpr) + (5 * dpr)),
-                    text: "0",
+                    text: "--",
                     padding: {
                         left: 5,
                         right: 5,
@@ -2249,7 +2249,7 @@ class Leaderboard extends Phaser.Scene {
                         fontSize: 8 * dpr,
                         fill: "#000000"
                     }
-                }).setDepth(2).setOrigin(0.5, 0.5).setText(rank);
+                }).setDepth(2).setOrigin(0.5, 0.5);
 
                 this.name = this.make.text({
                     x: this.halfWidth - (40 * dpr),
